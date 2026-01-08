@@ -296,32 +296,32 @@ export default function Home() {
       </Head>
 
       <div className="min-h-screen bg-white" style={{backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(0,0,0,0.02) 24px, rgba(0,0,0,0.02) 25px)'}}>
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
-          <header className="text-center mb-12 relative">
+          <header className="text-center mb-8 sm:mb-12 relative">
             <div className="absolute inset-0 border-b border-gray-100"></div>
-            <div className="relative bg-white pb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full mb-6">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="relative bg-white pb-6 sm:pb-8">
+              <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full mb-4 sm:mb-6">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h1 className="text-5xl font-bold text-gray-900 mb-4">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-3 sm:mb-4">
                 CV Reviewer
               </h1>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed px-4">
                 The only CV tool that thinks like both <span className="font-semibold text-orange-600">ATS systems</span> and <span className="font-semibold text-orange-600">human recruiters</span>
               </p>
-              <div className="flex justify-center mt-6 space-x-8 text-sm text-gray-500">
-                <div className="flex items-center">
+              <div className="flex flex-col sm:flex-row justify-center mt-4 sm:mt-6 space-y-2 sm:space-y-0 sm:space-x-8 text-sm text-gray-500">
+                <div className="flex items-center justify-center">
                   <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
                   Dual-Brain Analysis
                 </div>
-                <div className="flex items-center">
+                <div className="flex items-center justify-center">
                   <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
                   85%+ Success Rate
                 </div>
-                <div className="flex items-center">
+                <div className="flex items-center justify-center">
                   <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
                   AI-Powered Insights
                 </div>
@@ -331,28 +331,28 @@ export default function Home() {
 
           {/* Progress Indicator */}
           {step > 0 && (
-            <div className="flex justify-center mb-8">
-              <div className="flex items-center space-x-4 bg-white rounded-full px-6 py-3 border border-gray-200 shadow-sm">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
+            <div className="flex justify-center mb-6 sm:mb-8 px-4">
+              <div className="flex items-center space-x-2 sm:space-x-4 bg-white rounded-full px-4 sm:px-6 py-3 border border-gray-200 shadow-sm">
+                <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full transition-all duration-300 ${
                   step >= 1 ? 'bg-orange-500 text-white shadow-lg' : 'bg-gray-100 text-gray-600 border border-gray-200'
                 }`}>
-                  <span className="font-semibold">1</span>
+                  <span className="font-semibold text-sm sm:text-base">1</span>
                 </div>
-                <div className={`w-20 h-0.5 transition-all duration-300 ${
+                <div className={`w-12 sm:w-20 h-0.5 transition-all duration-300 ${
                   step >= 2 ? 'bg-orange-500' : 'bg-gray-200'
                 }`}></div>
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
+                <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full transition-all duration-300 ${
                   step >= 2 ? 'bg-orange-500 text-white shadow-lg' : 'bg-gray-100 text-gray-600 border border-gray-200'
                 }`}>
-                  <span className="font-semibold">2</span>
+                  <span className="font-semibold text-sm sm:text-base">2</span>
                 </div>
-                <div className={`w-20 h-0.5 transition-all duration-300 ${
+                <div className={`w-12 sm:w-20 h-0.5 transition-all duration-300 ${
                   step >= 3 ? 'bg-orange-500' : 'bg-gray-200'
                 }`}></div>
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
+                <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full transition-all duration-300 ${
                   step >= 3 ? 'bg-orange-500 text-white shadow-lg' : 'bg-gray-100 text-gray-600 border border-gray-200'
                 }`}>
-                  <span className="font-semibold">3</span>
+                  <span className="font-semibold text-sm sm:text-base">3</span>
                 </div>
               </div>
             </div>
@@ -393,7 +393,7 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-12 sm:mb-16 px-4">
                     <div 
                       onClick={() => setStep(1)}
                       className="group relative overflow-hidden bg-white border border-gray-200 rounded-2xl p-8 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-orange-300"
@@ -546,7 +546,7 @@ export default function Home() {
                     <p className="text-gray-600 text-lg">Select a template optimized for your industry and role</p>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 px-4">
                     {cvTemplates.map((template) => (
                       <div
                         key={template.id}
@@ -554,14 +554,14 @@ export default function Home() {
                         className="group relative bg-white border border-gray-200 rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-orange-300"
                       >
                         {/* Template Preview */}
-                        <div className="bg-gray-50 p-4 h-64 flex items-center justify-center border-b">
+                        <div className="bg-gray-50 p-2 sm:p-4 h-48 sm:h-64 flex items-center justify-center border-b">
                           <div className="w-full h-full">
                             {template.preview}
                           </div>
                         </div>
                         
                         {/* Template Info */}
-                        <div className="p-6">
+                        <div className="p-4 sm:p-6">
                           <div className="flex items-center mb-3">
                             <div className="text-2xl mr-3">{template.icon}</div>
                             <h3 className="text-lg font-bold text-gray-900">{template.name}</h3>

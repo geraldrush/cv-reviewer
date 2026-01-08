@@ -1,0 +1,37 @@
+{
+  "name": "cv-reviewer",
+  "version": "1.0.0",
+  "description": "Best-in-class CV reviewer with dual-brain ATS and recruiter simulation",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "server": "node server/index.js",
+    "dev:server": "nodemon server/index.js"
+  },
+  "dependencies": {
+    "autoprefixer": "10.4.14",
+    "canvas": "2.11.2",
+    "compromise": "14.9.0",
+    "cors": "2.8.5",
+    "dotenv": "16.0.3",
+    "express": "^4.22.1",
+    "multer": "^2.0.2",
+    "natural": "6.5.0",
+    "next": "^16.1.1",
+    "openai": "^6.15.0",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "1.1.1",
+    "pdf2pic": "2.1.4",
+    "pdfkit": "0.13.0",
+    "postcss": "^8.5.6",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "tailwindcss": "3.3.0",
+    "uuid": "9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}

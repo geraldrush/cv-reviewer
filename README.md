@@ -268,3 +268,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 *This isn't just another ATS checker. It's the CV analysis tool that thinks like both machines and humans to give you the real answer: "Will this CV get me interviews?"*# cv-reviewer
 # cv-reviewer
+# cv-reviewer

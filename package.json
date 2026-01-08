@@ -10,7 +10,7 @@
     "server": "node server/index.js",
     "dev:server": "nodemon server/index.js",
     "pages:build": "npx @cloudflare/next-on-pages",
-    "pages:deploy": "wrangler pages deploy"
+    "pages:deploy": "wrangler pages deploy out"
   },
   "dependencies": {
     "autoprefixer": "10.4.14",

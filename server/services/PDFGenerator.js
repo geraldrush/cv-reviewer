@@ -1,4 +1,4 @@
-const PDFDocument = require('pdfkit');
+const { jsPDF } = require('jspdf');
 
 class PDFGenerator {
   constructor() {
@@ -25,66 +25,34 @@ class PDFGenerator {
   }
 
   generateATSOptimizedPDF(cvData, filename = 'optimized_cv.pdf') {
-    return new Promise((resolve, reject) => {
-      try {
-        const doc = new PDFDocument({
-          size: 'A4',
-          margins: {
-            top: 50,    // Slightly tighter for more content
-            bottom: 50,
-            left: 50,
-            right: 50
-          },
-          info: {
-            Title: 'Professional CV - ATS Optimized',
-            Author: cvData.name || 'CV Reviewer',
-            Subject: 'Beautiful Professional Resume',
-            Keywords: 'CV, Resume, Professional, ATS-Optimized'
-          }
-        });
-
-        const chunks = [];
-        doc.on('data', chunk => chunks.push(chunk));
-        doc.on('end', () => resolve(Buffer.concat(chunks)));
-
-        // Header with name and contact
-        this.addATSHeader(doc, cvData);
-        
-        // Professional Summary
-        if (cvData.summary && cvData.summary.trim()) {
-            this.addATSSection(doc, 'PROFESSIONAL SUMMARY', cvData.summary);
-        }
-        
-        // Core Skills / Technical Skills
-        if (cvData.skills && (Array.isArray(cvData.skills) ? cvData.skills.length > 0 : cvData.skills.trim())) {
-            this.addATSSection(doc, 'CORE SKILLS', cvData.skills);
-        }
-        
-        // Work Experience
-        if (cvData.experience && cvData.experience.length > 0) {
-            this.addATSExperienceSection(doc, cvData.experience);
-        }
-        
-        // Projects Section
-        if (cvData.projects && cvData.projects.length > 0) {
-            this.addATSProjectsSection(doc, cvData.projects);
-        }
-        
-        // Education
-        if (cvData.education && cvData.education.length > 0) {
-            this.addATSEducationSection(doc, cvData.education);
-        }
-        
-        // Certifications
-        if (cvData.certifications && cvData.certifications.trim()) {
-            this.addATSSection(doc, 'CERTIFICATIONS', cvData.certifications);
-        }
-
-        doc.end();
-      } catch (error) {
-        reject(error);
+    try {
+      const doc = new jsPDF();
+      let yPosition = 30;
+      
+      // Add content
+      doc.setFontSize(16);
+      doc.text(cvData.name || 'Your Name', 20, yPosition);
+      yPosition += 10;
+      
+      doc.setFontSize(10);
+      const contact = [cvData.phone, cvData.email, cvData.location].filter(Boolean).join(' | ');
+      doc.text(contact, 20, yPosition);
+      yPosition += 20;
+      
+      // Summary
+      if (cvData.summary) {
+        doc.setFontSize(12);
+        doc.text('PROFESSIONAL SUMMARY', 20, yPosition);
+        yPosition += 8;
+        doc.setFontSize(10);
+        doc.text(cvData.summary, 20, yPosition, { maxWidth: 170 });
+        yPosition += 20;
       }
-    });
+      
+      return Buffer.from(doc.output('arraybuffer'));
+    } catch (error) {
+      throw error;
+    }
   }
 
   addATSHeader(doc, cvData) {

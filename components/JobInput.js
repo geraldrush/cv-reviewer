@@ -28,30 +28,6 @@ export default function JobInput({ onSubmit, onBack }) {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6">
       <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
-        {/* Navigation buttons at top */}
-        <div className="flex justify-between items-center mb-6">
-          <button
-            type="button"
-            onClick={onBack}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium text-sm"
-          >
-            ← Back
-          </button>
-          
-          <button
-            type="submit"
-            form="job-form"
-            disabled={!isValid}
-            className={`px-6 py-2 rounded-lg font-medium text-white transition-colors text-sm ${
-              isValid
-                ? 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500'
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
-          >
-            Next: Upload CV →
-          </button>
-        </div>
-
         <div className="text-center mb-6 sm:mb-8">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
             Step 1: Tell us about the job
@@ -135,8 +111,6 @@ export default function JobInput({ onSubmit, onBack }) {
               </div>
             </div>
           </div>
-
-
         </form>
 
         {/* Sample Job Descriptions */}
@@ -177,6 +151,30 @@ export default function JobInput({ onSubmit, onBack }) {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Navigation buttons at bottom */}
+        <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={onBack}
+            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+          >
+            ← Back
+          </button>
+          
+          <button
+            type="submit"
+            form="job-form"
+            disabled={!isValid}
+            className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${
+              isValid
+                ? 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500'
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
+          >
+            Next: Upload CV →
+          </button>
         </div>
       </div>
     </div>

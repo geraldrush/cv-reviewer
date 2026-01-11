@@ -1,14 +1,18 @@
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const PDFGenerator = require('./services/PDFGenerator');
 const UserTierService = require('./services/UserTierService');
+const AuthService = require('./services/AuthService');
+const PayFastService = require('./services/PayFastService');
 require('dotenv').config();
 
 const CVAnalyzer = require('./services/CVAnalyzer');
+const EnhancedCVIntelligence = require('./services/EnhancedCVIntelligence');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,14 +20,23 @@ const PORT = process.env.PORT || 3001;
 // Initialize services
 console.log('Initializing CV Analyzer with OpenAI API key:', process.env.OPENAI_API_KEY ? 'Present' : 'Missing');
 const cvAnalyzer = new CVAnalyzer(process.env.OPENAI_API_KEY);
+const enhancedIntelligence = new EnhancedCVIntelligence(process.env.OPENAI_API_KEY);
 const pdfGenerator = new PDFGenerator();
 const userTierService = new UserTierService();
+const authService = new AuthService();
+const payFastService = new PayFastService();
 console.log('CV Analyzer initialized successfully');
 
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'cv-reviewer-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+}));
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
@@ -115,6 +128,97 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Authentication endpoints
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ error: 'Google token required' });
+    }
+
+    const user = await authService.verifyGoogleToken(token);
+    req.session.userId = user.id;
+    
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+        isPaid: user.isPaid
+      }
+    });
+  } catch (error) {
+    res.status(401).json({ error: 'Authentication failed', message: error.message });
+  }
+});
+
+app.get('/api/auth/user', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const user = authService.getUser(req.session.userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  res.json({
+    success: true,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      isPaid: user.isPaid
+    }
+  });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy();
+  res.json({ success: true });
+});
+
+// Payment endpoints
+app.post('/api/payment/create', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const user = authService.getUser(req.session.userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const paymentData = payFastService.generatePaymentData(user.id, user.email);
+  
+  res.json({
+    success: true,
+    paymentUrl: payFastService.getPaymentUrl(),
+    paymentData
+  });
+});
+
+app.post('/api/payment/notify', (req, res) => {
+  try {
+    const isValid = payFastService.verifyPayment(req.body);
+    
+    if (isValid && req.body.payment_status === 'COMPLETE') {
+      const userId = req.body.m_payment_id;
+      authService.updateUserPaymentStatus(userId, true);
+      console.log(`Payment completed for user: ${userId}`);
+    }
+    
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Payment notification error:', error);
+    res.status(400).send('Error');
+  }
+});
+
 // Main CV analysis endpoint
 app.post('/api/analyze-cv', upload.single('cv'), async (req, res) => {
   try {
@@ -131,24 +235,110 @@ app.post('/api/analyze-cv', upload.single('cv'), async (req, res) => {
     // Extract text from uploaded file
     const cvText = await extractCvText(req.file);
     
+    // Debug: Log CV text extraction
+    console.log('=== CV TEXT EXTRACTION DEBUG ===');
+    console.log('CV Text Length:', cvText.length);
+    console.log('First 200 characters:', cvText.substring(0, 200));
+    console.log('Contains email:', /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(cvText));
+    console.log('Contains phone:', /[\+]?[\d\s\-\(\)]{10,}/.test(cvText));
+    console.log('================================');
+    
     if (!cvText || cvText.trim().length < 50) {
       return res.status(400).json({ 
         error: 'CV text extraction failed or too short',
         message: 'Could not extract readable text from this file. Please try: 1) Copy and paste your CV text directly, 2) Save as TXT file, or 3) Use our CV Builder.',
-        success: false
+        success: false,
+        debug: {
+          extractedLength: cvText ? cvText.length : 0,
+          fileType: req.file.mimetype,
+          fileName: req.file.originalname
+        }
       });
     }
 
     const tier = userTierService.getUserTier(userTier);
+    console.log('User tier:', tier, 'Can use AI:', userTierService.canUseAI(tier));
     let analysis;
 
     if (userTierService.canUseAI(tier)) {
-      // Premium: Full AI analysis
-      if (companyName && targetRole) {
-        analysis = await cvAnalyzer.analyzeForSpecificJob(cvText, jobDescription, companyName, targetRole);
-      } else {
-        analysis = await cvAnalyzer.analyzeCV(cvText, jobDescription, targetRole || '');
-      }
+      // Premium: Enhanced AI analysis
+      const industry = enhancedIntelligence.detectIndustry(jobDescription, cvText);
+      const bullets = enhancedIntelligence.extractBullets(cvText);
+      
+      // Debug: Log analysis inputs
+      console.log('=== ANALYSIS DEBUG ===');
+      console.log('Detected Industry:', industry);
+      console.log('Extracted Bullets:', bullets.length);
+      console.log('Sample bullets:', bullets.slice(0, 3));
+      console.log('CV starts with:', cvText.substring(0, 100));
+      console.log('Is cover letter check:', cvText.toLowerCase().includes('cover letter'));
+      console.log('=====================');
+      
+      const bulletAnalyses = bullets.map(bullet => enhancedIntelligence.analyzeBulletQuality(bullet, industry));
+      
+      const keywordMatch = enhancedIntelligence.analyzeKeywordMatch(cvText, jobDescription, industry);
+      console.log('Keyword match result:', { isMismatch: keywordMatch.isMismatch, mismatchPenalty: keywordMatch.mismatchPenalty });
+      
+      const atsCompatibility = enhancedIntelligence.calculateATSCompatibility(cvText);
+      const recruiterScore = enhancedIntelligence.calculateRecruiterScore(cvText, bulletAnalyses);
+      const overallScore = enhancedIntelligence.generateOverallScore(
+        atsCompatibility.score, 
+        recruiterScore.score, 
+        keywordMatch, 
+        bulletAnalyses
+      );
+      
+      console.log('Final scores:', { ats: atsCompatibility.score, recruiter: recruiterScore.score, overall: overallScore });
+
+      analysis = {
+        overallScore,
+        industry,
+        debug: {
+          cvTextLength: cvText.length,
+          bulletsFound: bulletAnalyses.length,
+          atsScore: atsCompatibility.score,
+          recruiterScore: recruiterScore.score,
+          keywordMatches: {
+            mandatory: keywordMatch.mandatory.matched,
+            skills: keywordMatch.skills.matched
+          }
+        },
+        atsAnalysis: {
+          rankingScore: atsCompatibility.score,
+          parsingScore: { score: atsCompatibility.score },
+          keywordMatch,
+          issues: atsCompatibility.issues
+        },
+        recruiterAnalysis: {
+          scanScore: recruiterScore.score,
+          firstImpressionScore: recruiterScore.factors.firstImpression,
+          stopReadingPoint: recruiterScore.stopReadingPoint,
+          bulletAnalysis: {
+            total: bulletAnalyses.length,
+            withMetrics: bulletAnalyses.filter(b => b.factors.metrics.score > 0).length
+          }
+        },
+        intelligenceAnalysis: {
+          bullets: {
+            totalBullets: bulletAnalyses.length,
+            bulletAnalysis: bulletAnalyses,
+            overallScore: bulletAnalyses.length ? Math.round(bulletAnalyses.reduce((acc, b) => acc + b.score, 0) / bulletAnalyses.length) : 0
+          }
+        },
+        matchPercentage: Math.round((keywordMatch.mandatory.percentage + keywordMatch.skills.percentage) / 2),
+        summary: {
+          verdict: keywordMatch.isMismatch ? 'WRONG INDUSTRY - NOT SUITABLE' : 
+                   overallScore >= 85 ? 'Excellent Match' : 
+                   overallScore >= 70 ? 'Good Match' : 
+                   overallScore >= 50 ? 'Fair Match' : 
+                   overallScore >= 25 ? 'Needs Major Improvement' : 'NOT A VALID CV',
+          keyStrengths: this.generateStrengths(bulletAnalyses, keywordMatch),
+          majorWeaknesses: this.generateWeaknesses(atsCompatibility, recruiterScore, bulletAnalyses, keywordMatch),
+          quickWins: this.generateQuickWins(bulletAnalyses, keywordMatch),
+          timeToImprove: keywordMatch.isMismatch ? 'Need completely different CV for this role' : 
+                        bulletAnalyses.filter(b => b.score < 60).length > 5 ? '2-3 hours' : '30-60 minutes'
+        }
+      };
     } else {
       // Free: Basic code-only analysis
       analysis = userTierService.getBasicAnalysis(cvText, jobDescription);
@@ -162,7 +352,7 @@ app.post('/api/analyze-cv', upload.single('cv'), async (req, res) => {
       analysis: analysis,
       extractedCvText: cvText,
       message: tier === 'premium' ? 
-        `CV analysis completed with ${analysis.overallScore}% overall score` :
+        `Enhanced CV analysis completed with ${analysis.overallScore}% overall score` :
         'Basic analysis completed. Upgrade to Premium for AI-powered insights.'
     });
 
@@ -176,23 +366,117 @@ app.post('/api/analyze-cv', upload.single('cv'), async (req, res) => {
   }
 });
 
+// Helper functions for analysis
+function generateStrengths(bulletAnalyses, keywordMatch) {
+  const strengths = [];
+  
+  const strongBullets = bulletAnalyses.filter(b => b.score >= 70).length;
+  if (strongBullets > bulletAnalyses.length * 0.6) {
+    strengths.push('Strong achievement-focused bullet points');
+  }
+  
+  if (keywordMatch.skills.percentage > 70) {
+    strengths.push('Excellent technical skill alignment');
+  }
+  
+  const hasMetrics = bulletAnalyses.filter(b => b.factors.metrics.score > 0).length;
+  if (hasMetrics > bulletAnalyses.length * 0.5) {
+    strengths.push('Good use of quantifiable metrics');
+  }
+  
+  return strengths.length ? strengths : ['CV structure is readable'];
+}
+
+function generateWeaknesses(atsCompatibility, recruiterScore, bulletAnalyses, keywordMatch) {
+  const weaknesses = [];
+  
+  // CRITICAL: Check for job-CV mismatch first - this should be the primary weakness
+  if (keywordMatch && keywordMatch.isMismatch) {
+    weaknesses.push('MAJOR ISSUE: This CV is for a completely different industry/role');
+    weaknesses.push('Skills and experience do not match the job requirements at all');
+    weaknesses.push('You need a CV specifically tailored for this role to be considered');
+    return weaknesses;
+  }
+  
+  // Check if this is even a CV document
+  if (atsCompatibility.issues && atsCompatibility.issues.includes('Document does not appear to be a CV or resume')) {
+    weaknesses.push('CRITICAL: This document is not a CV or resume');
+    weaknesses.push('Please upload a proper CV with work experience and skills');
+    return weaknesses;
+  }
+  
+  // Check for very low keyword match (indicates wrong field/industry)
+  if (keywordMatch && keywordMatch.mandatory && keywordMatch.mandatory.percentage < 20) {
+    weaknesses.push('MAJOR MISMATCH: CV appears to be for a different field entirely');
+    weaknesses.push('Almost no relevant keywords or skills found for this job');
+  }
+  
+  if (atsCompatibility.score < 70) {
+    weaknesses.push('ATS compatibility issues detected');
+  }
+  
+  const weakBullets = bulletAnalyses.filter(b => b.score < 50).length;
+  if (weakBullets > bulletAnalyses.length * 0.4) {
+    weaknesses.push('Multiple weak bullet points need improvement');
+  }
+  
+  if (recruiterScore.stopReadingPoint) {
+    weaknesses.push('Early stop-reading triggers detected');
+  }
+  
+  return weaknesses.length ? weaknesses : ['Minor formatting improvements needed'];
+}
+
+function generateQuickWins(bulletAnalyses, keywordMatch) {
+  const quickWins = [];
+  
+  const noMetricsBullets = bulletAnalyses.filter(b => b.factors.metrics.score === 0).length;
+  if (noMetricsBullets > 0) {
+    quickWins.push(`Add metrics to ${noMetricsBullets} bullet points`);
+  }
+  
+  if (keywordMatch.mandatory.missing.length > 0) {
+    quickWins.push(`Include missing keywords: ${keywordMatch.mandatory.missing.slice(0, 3).join(', ')}`);
+  }
+  
+  const weakActionVerbs = bulletAnalyses.filter(b => b.factors.actionVerb.score === 0).length;
+  if (weakActionVerbs > 0) {
+    quickWins.push(`Strengthen ${weakActionVerbs} bullet points with action verbs`);
+  }
+  
+  return quickWins.length ? quickWins : ['Optimize formatting for better ATS parsing'];
+}
+
 // CV rewrite endpoint
 app.post('/api/rewrite-cv', upload.single('cv'), async (req, res) => {
   try {
-    const { jobDescription, targetRole, companyName, userTier } = req.body;
+    // Check authentication
+    if (!req.session.userId) {
+      return res.status(401).json({ 
+        error: 'Authentication required',
+        message: 'Please sign in with Google to access CV rewriting.',
+        requiresAuth: true
+      });
+    }
+
+    const user = authService.getUser(req.session.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check payment status
+    if (!user.isPaid) {
+      return res.status(403).json({ 
+        error: 'Payment required',
+        message: 'CV rewriting requires premium access. Please complete payment to continue.',
+        requiresPayment: true
+      });
+    }
+
+    const { jobDescription, targetRole, companyName } = req.body;
     
     if (!req.file || !jobDescription) {
       return res.status(400).json({ error: 'CV file and job description are required' });
-    }
-
-    const tier = userTierService.getUserTier(userTier);
-    
-    if (!userTierService.canRewriteCV(tier)) {
-      return res.status(403).json({ 
-        error: 'Premium feature required',
-        message: 'CV rewriting is available for Premium users only. Upgrade to access AI-powered CV improvements.',
-        success: false
-      });
     }
 
     // Extract text from uploaded file

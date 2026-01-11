@@ -1,12 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import AuthModal from './AuthModal';
+import PaymentModal from './PaymentModal';
 
 export default function CVRewriter({ analysis, jobData, originalCV, structuredCV, onBack }) {
   const [rewriting, setRewriting] = useState(false);
   const [rewrittenCV, setRewrittenCV] = useState(null);
   const [improvements, setImprovements] = useState(null);
-  const [downloadFormat, setDownloadFormat] = useState('pdf');
+  const [user, setUser] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/user`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      // Silently fail - user will see auth modal when trying to rewrite
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRewrite = async () => {
+    // Check authentication first
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    // Check payment status
+    if (!user.isPaid) {
+      setShowPaymentModal(true);
+      return;
+    }
+
     setRewriting(true);
     try {
       const formData = new FormData();
@@ -20,12 +59,21 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rewrite-cv`, {
         method: 'POST',
+        credentials: 'include',
         body: formData,
       });
 
       const result = await response.json();
 
       if (!result.success) {
+        if (result.requiresAuth) {
+          setShowAuthModal(true);
+          return;
+        }
+        if (result.requiresPayment) {
+          setShowPaymentModal(true);
+          return;
+        }
         throw new Error(result.message || 'Rewrite failed');
       }
 
@@ -112,33 +160,62 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
         {/* Rewrite Section */}
         {!rewrittenCV ? (
           <div className="text-center">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-              <h3 className="font-semibold text-blue-900 mb-3">What we'll improve:</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
-                <div className="space-y-2">
-                  <div>✓ Add missing mandatory keywords naturally</div>
-                  <div>✓ Rewrite weak bullets with metrics</div>
-                  <div>✓ Strengthen action verbs</div>
+            {!user || !user.isPaid ? (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-6">
+                <h3 className="font-semibold text-orange-900 mb-3">🔒 Premium Feature</h3>
+                <p className="text-orange-800 mb-4">
+                  {!user ? 'Please sign in and upgrade to access CV rewriting.' : 'CV rewriting requires premium access.'}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-orange-700 mb-4">
+                  <div className="space-y-2">
+                    <div>✓ AI-powered bullet improvements</div>
+                    <div>✓ Smart keyword integration</div>
+                    <div>✓ ATS optimization</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div>✓ Recruiter-friendly formatting</div>
+                    <div>✓ Industry-specific language</div>
+                    <div>✓ Performance metrics enhancement</div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <div>✓ Optimize for ATS parsing</div>
-                  <div>✓ Improve recruiter scanning</div>
-                  <div>✓ Enhance first impression</div>
+                <button
+                  onClick={handleRewrite}
+                  className="px-8 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
+                >
+                  {!user ? 'Sign In & Upgrade - R99' : 'Upgrade to Premium - R99'}
+                </button>
+              </div>
+            ) : (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                <h3 className="font-semibold text-blue-900 mb-3">What we'll improve:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+                  <div className="space-y-2">
+                    <div>✓ Add missing mandatory keywords naturally</div>
+                    <div>✓ Rewrite weak bullets with metrics</div>
+                    <div>✓ Strengthen action verbs</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div>✓ Optimize for ATS parsing</div>
+                    <div>✓ Improve recruiter scanning</div>
+                    <div>✓ Enhance first impression</div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <button
-              onClick={handleRewrite}
-              disabled={rewriting}
-              className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${
-                rewriting
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500'
-              }`}
-            >
-              {rewriting ? 'Rewriting CV...' : 'Generate Improved CV'}
-            </button>
+            {user && user.isPaid && (
+              <button
+                onClick={handleRewrite}
+                disabled={rewriting}
+                className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${
+                  rewriting
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500'
+                }`}
+              >
+                {rewriting ? 'Rewriting CV...' : 'Generate Improved CV'}
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-8">
@@ -160,42 +237,16 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
             )}
 
             {/* CV Comparison */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-4">Original CV</h3>
-                <div className="bg-gray-50 border rounded-lg p-4 h-96 overflow-y-auto">
-                  <pre className="text-sm text-gray-700 whitespace-pre-wrap">{originalCV}</pre>
-                </div>
-                <button
-                  onClick={() => handleDownload(originalCV, downloadFormat, structuredCV)}
-                  className="mt-4 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Download Original
-                </button>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-4">Improved CV</h3>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 h-96 overflow-y-auto">
-                  <pre className="text-sm text-gray-700 whitespace-pre-wrap">{rewrittenCV}</pre>
-                </div>
-                <div className="mt-4 flex items-center space-x-4">
-                  <select
-                    value={downloadFormat}
-                    onChange={(e) => setDownloadFormat(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="pdf">PDF (ATS Optimized)</option>
-                    <option value="txt">TXT Format</option>
-                    <option value="md">Markdown</option>
-                  </select>
-                  <button
-                    onClick={() => handleDownload(rewrittenCV, downloadFormat, structuredCV)}
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    Download Improved CV
-                  </button>
-                </div>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Improved CV Generated</h3>
+              <p className="text-green-800 mb-4">
+                Your CV has been successfully rewritten and optimized for the target role.
+              </p>
+              <div className="text-sm text-green-700">
+                ✓ Keywords optimized for ATS systems<br/>
+                ✓ Bullet points strengthened with metrics<br/>
+                ✓ Action verbs enhanced<br/>
+                ✓ Business impact highlighted
               </div>
             </div>
 
@@ -224,6 +275,38 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
           </button>
         </div>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={(userData) => {
+          setUser(userData);
+          setShowAuthModal(false);
+          if (!userData.isPaid) {
+            setShowPaymentModal(true);
+          }
+        }}
+      />
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        user={user}
+      />
+
+      {/* Loading overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
+          <div className="bg-white rounded-lg p-6">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Checking authentication...</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

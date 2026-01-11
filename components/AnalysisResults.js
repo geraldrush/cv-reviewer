@@ -8,13 +8,17 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
 
   const handleDownloadCV = async (format) => {
     try {
-      const response = await fetch('http://localhost:3001/api/download-cv', {
+      // Use the original extracted CV text from analysis
+      const cvTextToDownload = analysis?.extractedCvText || cvText || 'CV text not available';
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/download-cv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          cvText, 
-          structured: cvText.structured || null,
-          format 
+          cvText: cvTextToDownload,
+          format,
+          jobDescription: jobData?.description || '',
+          analysis: analysis
         })
       });
       
@@ -23,7 +27,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `optimized_cv_${Date.now()}.${format}`;
+        a.download = `analyzed_cv_${Date.now()}.${format}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -31,14 +35,24 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
         setShowPreview(false);
       } else {
         console.error('Download failed:', response.statusText);
+        alert('Download failed. Please try again.');
       }
     } catch (error) {
       console.error('Download failed:', error);
+      alert('Download failed. Please try again.');
     }
   };
 
   const showCVPreview = (text) => {
-    setCvText(text);
+    // Try multiple sources for CV text
+    const cvTextToShow = analysis?.extractedCvText || analysis?.originalCV || analysis?.cvText || text || 'CV text not available';
+    console.log('CV text sources:', {
+      extractedCvText: analysis?.extractedCvText?.substring(0, 100),
+      originalCV: analysis?.originalCV?.substring(0, 100),
+      cvText: analysis?.cvText?.substring(0, 100),
+      passedText: text?.substring(0, 100)
+    });
+    setCvText(cvTextToShow);
     setShowPreview(true);
   };
 
@@ -64,46 +78,46 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto px-2 sm:px-4">
       {/* Header with Main Score */}
-      <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+      <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-4 sm:p-8 mb-4 sm:mb-8">
         <div className="text-center">
-          <div className="flex items-center justify-center mb-4">
-            <div className={`text-6xl font-bold ${getScoreColor(analysis.overallScore)}`}>
+          <div className="flex flex-col sm:flex-row items-center justify-center mb-4">
+            <div className={`text-4xl sm:text-6xl font-bold ${getScoreColor(analysis.overallScore)} mb-2 sm:mb-0`}>
               {analysis.overallScore}%
             </div>
-            <div className="ml-4 text-left">
-              <div className="text-2xl font-bold text-gray-900">Match Score</div>
-              <div className="text-gray-600">
+            <div className="sm:ml-4 text-center sm:text-left">
+              <div className="text-lg sm:text-2xl font-bold text-gray-900">Match Score</div>
+              <div className="text-sm sm:text-base text-gray-600">
                 for <span className="font-semibold">{jobData.role}</span>
                 {jobData.company && <span> at {jobData.company}</span>}
               </div>
             </div>
           </div>
           
-          <div className={`inline-block px-6 py-2 rounded-full text-lg font-medium ${getScoreBg(analysis.overallScore)} ${getScoreColor(analysis.overallScore)}`}>
+          <div className={`inline-block px-3 sm:px-6 py-1 sm:py-2 rounded-full text-sm sm:text-lg font-medium ${getScoreBg(analysis.overallScore)} ${getScoreColor(analysis.overallScore)}`}>
             {analysis.summary?.verdict || 'Analysis Complete'}
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <div className="grid grid-cols-3 gap-2 sm:gap-6 mt-4 sm:mt-8">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-lg sm:text-2xl font-bold text-blue-600">
                 {analysis.atsAnalysis?.rankingScore || 0}%
               </div>
-              <div className="text-sm text-gray-600">ATS Compatibility</div>
+              <div className="text-xs sm:text-sm text-gray-600">ATS Compatibility</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-lg sm:text-2xl font-bold text-green-600">
                 {analysis.recruiterAnalysis?.scanScore || 0}%
               </div>
-              <div className="text-sm text-gray-600">Recruiter Appeal</div>
+              <div className="text-xs sm:text-sm text-gray-600">Recruiter Appeal</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-lg sm:text-2xl font-bold text-purple-600">
                 {analysis.matchPercentage || 0}%
               </div>
-              <div className="text-sm text-gray-600">Keyword Match</div>
+              <div className="text-xs sm:text-sm text-gray-600">Keyword Match</div>
             </div>
           </div>
         </div>
@@ -111,26 +125,26 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
 
       {/* Critical Issues Alert */}
       {analysis.criticalIssues && analysis.criticalIssues.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg sm:rounded-xl p-4 sm:p-6 mb-4 sm:mb-8">
           <div className="flex items-start">
-            <div className="text-red-600 mr-3">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+            <div className="text-red-600 mr-2 sm:mr-3 flex-shrink-0">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-red-800 mb-2">
+            <div className="flex-1">
+              <h3 className="text-base sm:text-lg font-semibold text-red-800 mb-2">
                 ⚠️ Critical Issues Found
               </h3>
-              <p className="text-red-700 mb-4">
+              <p className="text-sm sm:text-base text-red-700 mb-3 sm:mb-4">
                 These issues will likely prevent your CV from getting shortlisted. Fix these first!
               </p>
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {analysis.criticalIssues.map((issue, index) => (
-                  <div key={index} className="bg-white rounded-lg p-4 border border-red-200">
-                    <div className="font-medium text-red-800">{issue.title}</div>
-                    <div className="text-sm text-red-700 mt-1">{issue.description}</div>
-                    <div className="text-xs text-red-600 mt-2">
+                  <div key={index} className="bg-white rounded-lg p-3 sm:p-4 border border-red-200">
+                    <div className="font-medium text-sm sm:text-base text-red-800">{issue.title}</div>
+                    <div className="text-xs sm:text-sm text-red-700 mt-1">{issue.description}</div>
+                    <div className="text-xs text-red-600 mt-1 sm:mt-2">
                       Impact: {issue.impact} • Fix time: {issue.fixTime}
                     </div>
                   </div>
@@ -142,33 +156,33 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
       )}
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="border-b border-gray-200">
-          <nav className="flex">
+      <div className="bg-white rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
+        <div className="border-b border-gray-200 overflow-x-auto">
+          <nav className="flex min-w-max">
             {[
               { id: 'overview', label: 'Overview', icon: '📊' },
-              { id: 'ats', label: 'ATS Analysis', icon: '🤖' },
-              { id: 'recruiter', label: 'Recruiter View', icon: '👩💼' },
-              { id: 'bullets', label: 'Bullet Analysis', icon: '🎯' },
-              { id: 'recommendations', label: 'Recommendations', icon: '💡' }
+              { id: 'ats', label: 'ATS', icon: '🤖' },
+              { id: 'recruiter', label: 'Recruiter', icon: '👩💼' },
+              { id: 'bullets', label: 'Bullets', icon: '🎯' },
+              { id: 'recommendations', label: 'Tips', icon: '💡' }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                className={`px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600 bg-blue-50'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <span className="mr-2">{tab.icon}</span>
+                <span className="mr-1 sm:mr-2">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
           </nav>
         </div>
 
-        <div className="p-8">
+        <div className="p-4 sm:p-8">
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-8">
@@ -497,30 +511,30 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-center mt-8 space-x-4">
+      <div className="flex flex-col sm:flex-row justify-center mt-4 sm:mt-8 space-y-2 sm:space-y-0 sm:space-x-4 px-2">
         <button
           onClick={onReset}
-          className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          className="w-full sm:w-auto px-4 sm:px-6 py-3 border border-gray-300 rounded-lg text-sm sm:text-base text-gray-700 hover:bg-gray-50 transition-colors"
         >
           Analyze Another CV
         </button>
         <button
           onClick={onImprove}
-          className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+          className="w-full sm:w-auto px-4 sm:px-6 py-3 bg-orange-600 text-white rounded-lg text-sm sm:text-base hover:bg-orange-700 transition-colors"
         >
           Apply Improvements
         </button>
         <button
           onClick={onRewrite}
-          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          className="w-full sm:w-auto px-4 sm:px-6 py-3 bg-green-600 text-white rounded-lg text-sm sm:text-base hover:bg-green-700 transition-colors"
         >
           Auto-Rewrite CV
         </button>
         <button
-          onClick={() => showCVPreview(analysis.originalCV || analysis.cvText || 'CV text not available')}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          onClick={() => showCVPreview(analysis.extractedCvText || analysis.originalCV || 'CV text not available')}
+          className="w-full sm:w-auto px-4 sm:px-6 py-3 bg-blue-600 text-white rounded-lg text-sm sm:text-base hover:bg-blue-700 transition-colors"
         >
-          Download CV
+          Preview & Download CV
         </button>
       </div>
 
@@ -528,6 +542,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
       {showPreview && (
         <CVPreview
           cvText={cvText}
+          analysis={analysis}
           onDownload={handleDownloadCV}
           onClose={() => setShowPreview(false)}
         />

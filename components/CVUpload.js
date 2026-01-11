@@ -69,31 +69,31 @@ export default function CVUpload({ jobData, onAnalyze, onBack }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-xl shadow-lg p-8">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6">
+      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
+        <div className="text-center mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
             Step 2: Upload your CV
           </h2>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm sm:text-base px-2">
             We'll analyze it for: <span className="font-semibold text-blue-600">{jobData.role}</span>
             {jobData.company && <span> at {jobData.company}</span>}
           </p>
         </div>
 
         {/* Job Summary */}
-        <div className="bg-gray-50 rounded-lg p-4 mb-8">
-          <h3 className="font-medium text-gray-900 mb-2">Analyzing for this position:</h3>
-          <div className="text-sm text-gray-600">
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4 mb-6 sm:mb-8">
+          <h3 className="font-medium text-gray-900 mb-2 text-sm sm:text-base">Analyzing for this position:</h3>
+          <div className="text-xs sm:text-sm text-gray-600 space-y-1">
             <div><strong>Role:</strong> {jobData.role || 'Not specified'}</div>
             <div><strong>Company:</strong> {jobData.company || 'Not specified'}</div>
-            <div><strong>Requirements:</strong> {jobData.description.substring(0, 150)}...</div>
+            <div><strong>Requirements:</strong> {jobData.description.substring(0, 100)}...</div>
           </div>
         </div>
 
         {/* File Upload Area */}
         <div
-          className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+          className={`relative border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${
             dragActive
               ? 'border-blue-400 bg-blue-50'
               : selectedFile
@@ -114,35 +114,35 @@ export default function CVUpload({ jobData, onAnalyze, onBack }) {
           />
 
           {selectedFile ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="text-green-600">
-                <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-10 h-10 sm:w-12 sm:h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <p className="text-lg font-medium text-gray-900">{selectedFile.name}</p>
-                <p className="text-sm text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                <p className="text-base sm:text-lg font-medium text-gray-900 break-all">{selectedFile.name}</p>
+                <p className="text-xs sm:text-sm text-gray-500">{formatFileSize(selectedFile.size)}</p>
               </div>
               <button
                 onClick={() => setSelectedFile(null)}
-                className="text-sm text-red-600 hover:text-red-700"
+                className="text-xs sm:text-sm text-red-600 hover:text-red-700"
               >
                 Remove file
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="text-gray-400">
-                <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-10 h-10 sm:w-12 sm:h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </div>
               <div>
-                <p className="text-lg font-medium text-gray-900">
-                  Drop your CV here, or click to browse
+                <p className="text-base sm:text-lg font-medium text-gray-900">
+                  Drop your CV here, or tap to browse
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs sm:text-sm text-gray-500">
                   Supports PDF and TXT files up to 5MB
                 </p>
               </div>
@@ -152,24 +152,24 @@ export default function CVUpload({ jobData, onAnalyze, onBack }) {
 
         {/* Analysis Preview */}
         {selectedFile && (
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="font-medium text-blue-900 mb-3">What we'll analyze:</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="mt-6 sm:mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4 sm:p-6">
+            <h3 className="font-medium text-blue-900 mb-3 text-sm sm:text-base">What we'll analyze:</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
               <div className="space-y-2">
                 <div className="flex items-center text-blue-800">
-                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   ATS parsing & compatibility
                 </div>
                 <div className="flex items-center text-blue-800">
-                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   Keyword matching & ranking
                 </div>
                 <div className="flex items-center text-blue-800">
-                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   Section detection & structure
@@ -177,19 +177,19 @@ export default function CVUpload({ jobData, onAnalyze, onBack }) {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center text-blue-800">
-                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   Recruiter scanning simulation
                 </div>
                 <div className="flex items-center text-blue-800">
-                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   Bullet-level impact analysis
                 </div>
                 <div className="flex items-center text-blue-800">
-                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   Anti-pattern & bias detection
@@ -200,10 +200,10 @@ export default function CVUpload({ jobData, onAnalyze, onBack }) {
         )}
 
         {/* Action Buttons */}
-        <div className="flex justify-between mt-8">
+        <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 mt-6 sm:mt-8">
           <button
             onClick={onBack}
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            className="px-4 sm:px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm sm:text-base"
           >
             ← Back to Job Details
           </button>
@@ -211,7 +211,7 @@ export default function CVUpload({ jobData, onAnalyze, onBack }) {
           <button
             onClick={handleAnalyze}
             disabled={!selectedFile || uploading}
-            className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${
+            className={`px-6 sm:px-8 py-3 rounded-lg font-medium text-white transition-colors text-sm sm:text-base ${
               selectedFile && !uploading
                 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500'
                 : 'bg-gray-400 cursor-not-allowed'
@@ -222,36 +222,36 @@ export default function CVUpload({ jobData, onAnalyze, onBack }) {
         </div>
 
         {/* Tips */}
-        <div className="mt-8 pt-8 border-t border-gray-200">
-          <h3 className="font-medium text-gray-900 mb-4">Tips for best results:</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+        <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-gray-200">
+          <h3 className="font-medium text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Tips for best results:</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm text-gray-600">
             <div className="flex items-start">
-              <div className="text-green-500 mr-2 mt-0.5">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <div className="text-green-500 mr-2 mt-0.5 flex-shrink-0">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
               Use a clean, simple format
             </div>
             <div className="flex items-start">
-              <div className="text-green-500 mr-2 mt-0.5">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <div className="text-green-500 mr-2 mt-0.5 flex-shrink-0">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
               Include contact information
             </div>
             <div className="flex items-start">
-              <div className="text-green-500 mr-2 mt-0.5">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <div className="text-green-500 mr-2 mt-0.5 flex-shrink-0">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
               Try TXT format if PDF fails
             </div>
             <div className="flex items-start">
-              <div className="text-green-500 mr-2 mt-0.5">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <div className="text-green-500 mr-2 mt-0.5 flex-shrink-0">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>

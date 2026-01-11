@@ -1,271 +1,362 @@
-# CV Reviewer - Best-in-Class CV Analysis
+# CV Reviewer – Best-in-Class CV Analysis Engine
 
-A **dual-brain AI system** that analyzes CVs like both ATS systems and human recruiters to give you the most accurate feedback on your job application success rate.
+A **dual-brain AI CV analysis platform** that evaluates CVs the same way **ATS systems** *and* **human recruiters** do — giving realistic, actionable feedback on your chances of getting interviews.
+
+This project is designed for **accuracy, realism, and production-grade CV parsing**, not surface-level keyword checks.
+
+---
+
+## 🚨 Important Architecture Note (READ THIS FIRST)
+
+This project uses:
+
+* **Node.js (Express) backend**
+* **Memory-based file uploads (multer)**
+* **PDF & DOCX text extraction**
+* **OpenAI-powered analysis & rewriting**
+
+⚠️ **This backend does NOT run on Cloudflare Workers or Pages Functions.**
+
+### ✅ Supported Deployment Models
+
+* Node.js server (Oracle VM, Fly.io, Railway, VPS)
+* Cloudflare **DNS / CDN / SSL** in front of the Node backend
+
+### ❌ Not Supported
+
+* Cloudflare Workers backend
+* Cloudflare Pages Functions backend
+
+Cloudflare should be used as **edge + CDN**, not as the execution runtime for this API.
+
+---
 
 ## 🧠 Dual-Brain Architecture
 
-### Brain 1: ATS Simulator
-- **Parsing Analysis**: Checks if ATS can read your CV cleanly
-- **Section Detection**: Identifies experience, education, skills sections
-- **Keyword Matching**: Matches mandatory vs nice-to-have requirements
-- **Ranking Score**: Calculates your position vs other candidates
-- **Filtering Issues**: Detects automatic rejection triggers
+### Brain 1: ATS Simulator (Machine Perspective)
 
-### Brain 2: Recruiter Simulator
-- **F-Pattern Scanning**: Simulates how recruiters scan CVs
-- **6-Second Test**: Analyzes first impression impact
-- **Stop Reading Point**: Identifies where recruiters lose interest
-- **Bullet Analysis**: Evaluates achievement vs task language
-- **Career Progression**: Assesses professional growth
+Simulates how real Applicant Tracking Systems parse and rank CVs.
 
-### Intelligence Layer
-- **Bullet-Level Analysis**: Scores each achievement statement
-- **Anti-Pattern Detection**: Finds buzzwords and weak language
-- **Bias & Compliance**: Checks for problematic content
-- **AI-Powered Rewrites**: Suggests improved bullet points
+* CV parsing & readability
+* Section detection (Experience, Education, Skills)
+* Mandatory vs nice-to-have keyword matching
+* Automatic rejection triggers
+* Ranking score vs other candidates
+
+### Brain 2: Recruiter Simulator (Human Perspective)
+
+Simulates how recruiters actually read CVs.
+
+* F-pattern scanning behavior
+* 6-second first-impression test
+* Stop-reading point detection
+* Achievement vs task-based bullets
+* Career progression evaluation
+
+### Intelligence Layer (AI-Powered)
+
+* Bullet-level scoring & feedback
+* Anti-pattern detection ("responsible for", buzzwords)
+* Bias & compliance scanning
+* ATS-optimized CV rewrites
+* One-click bullet improvements
+
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
-- OpenAI API key
-- 5MB+ available storage
+
+* Node.js **18+**
+* npm **9+**
+* OpenAI API key
+* 5MB+ free disk space
+
+---
 
 ### Installation
 
-1. **Clone and install dependencies**
 ```bash
 git clone <repository-url>
 cd cv-reviewer
 npm install
 ```
 
-2. **Set up environment variables**
-```bash
-cp .env.example .env
-```
+---
 
-Edit `.env` and add your API keys:
-```
+### Environment Variables
+
+Create a `.env` file:
+
+```env
 OPENAI_API_KEY=your_openai_api_key_here
 NEXT_PUBLIC_API_URL=http://localhost:3001
+PORT=3001
 ```
 
-3. **Start the application**
+---
 
-Terminal 1 (Backend):
+### Running Locally
+
+#### Terminal 1 – Backend (Express API)
+
 ```bash
 npm run dev:server
 ```
 
-Terminal 2 (Frontend):
+#### Terminal 2 – Frontend (Next.js)
+
 ```bash
 npm run dev
 ```
 
-4. **Open your browser**
+Open:
+
 ```
 http://localhost:3000
 ```
 
-## 📊 How It Works
+---
 
-### Job-First UX Pattern
-1. **Paste job description** → System extracts requirements
-2. **Upload CV** → Dual-brain analysis begins
-3. **Get results** → Specific match score for that job
+## 📊 How the System Works
+
+### Job-First UX Flow
+
+1. Paste job description
+2. Upload CV (PDF / DOCX / TXT)
+3. CV text is extracted & cleaned
+4. Dual-brain analysis runs
+5. Scores + actionable feedback returned
+
+---
 
 ### Analysis Output
-- **Overall Score**: Weighted combination of ATS + Recruiter + Intelligence
-- **Match Percentage**: Keyword alignment with job requirements  
-- **Critical Issues**: Blocking problems that prevent shortlisting
-- **Recommendations**: Prioritized improvements with impact estimates
+
+* **Overall Score** – Weighted ATS + Recruiter + Intelligence
+* **Keyword Match %** – Job-specific relevance
+* **Critical Issues** – ATS rejection blockers
+* **Recommendations** – Ordered by impact
+* **Rewrite Suggestions** – Bullet-level improvements
+
+---
 
 ## 🎯 Key Features
 
-### ATS-Specific Modes
-- Generic ATS compatibility
-- Workday simulation (coming soon)
-- Greenhouse simulation (coming soon)
+### ATS-Focused
 
-### Recruiter Personas
-- Startup recruiter behavior
-- Enterprise HR patterns
-- Technical lead screening
+* Generic ATS simulation (current)
+* Workday simulation (planned)
+* Greenhouse simulation (planned)
 
-### Smart Analysis
-- **Bullet Scoring**: Each achievement gets individual feedback
-- **Anti-Pattern Detection**: Identifies weak language automatically
-- **One-Click Rewrites**: AI improves your bullets instantly
-- **Bias Detection**: Flags potentially problematic content
+### Recruiter Personas (Planned)
+
+* Startup recruiter
+* Enterprise HR
+* Technical lead screening
+
+### Smart Intelligence
+
+* Bullet scoring with metrics
+* Weak language detection
+* Bias & compliance flags
+* AI-generated rewrites
+
+---
 
 ## 🔧 API Endpoints
 
-### Main Analysis
-```bash
-POST /api/analyze-cv
-Content-Type: multipart/form-data
+### Analyze CV (File Upload)
 
-# Form data:
-# cv: PDF/TXT file
-# jobDescription: string
-# targetRole: string (optional)
-# companyName: string (optional)
+`POST /api/analyze-cv`
+`multipart/form-data`
+
+Form fields:
+
+```
+cv: PDF | DOCX | TXT
+jobDescription: string
+targetRole: string (optional)
+companyName: string (optional)
 ```
 
-### Quick Text Analysis
-```bash
-POST /api/quick-analyze
-Content-Type: application/json
+---
 
+### Quick Text Analysis (No File Upload)
+
+`POST /api/quick-analyze`
+`application/json`
+
+```json
 {
   "cvText": "string",
-  "jobDescription": "string", 
+  "jobDescription": "string",
   "targetRole": "string"
 }
 ```
 
-### Bullet Rewriting
-```bash
-POST /api/rewrite-bullet
-Content-Type: application/json
+---
 
-{
-  "bullet": "Responsible for managing projects"
-}
+### Rewrite Entire CV
 
-# Returns:
+`POST /api/rewrite-cv`
+`multipart/form-data`
+
+```
+cv: file
+jobDescription: string
+```
+
+---
+
+### Apply User Improvements
+
+`POST /api/apply-improvements`
+`application/json`
+
+```json
 {
-  "original": "Responsible for managing projects",
-  "rewritten": "Led 5 cross-functional projects, delivering releases 20% ahead of schedule"
+  "originalCV": "string",
+  "improvements": {},
+  "jobDescription": "string"
 }
 ```
 
-## 📈 What Makes This "Best-in-Class"
+---
 
-### 1. **Dual Perspective**
-Most tools only check ATS compatibility. This simulates both ATS systems AND human recruiter behavior.
+### Download Optimized CV
 
-### 2. **Job-Specific Analysis**  
-Instead of generic feedback, every analysis is tailored to a specific job posting.
+`POST /api/download-cv`
 
-### 3. **Actionable Intelligence**
-- Tells you exactly where recruiters stop reading
-- Shows which keywords are mandatory vs nice-to-have
-- Provides one-click bullet improvements
+Supports:
 
-### 4. **Startup-Grade Architecture**
-- Modular services for easy scaling
-- Clean separation of concerns
-- Production-ready error handling
+* ATS-optimized **PDF**
+* TXT
+* Markdown
 
-## 🛠 Development
+---
 
-### Project Structure
+## 🛠 Project Structure
+
 ```
 cv-reviewer/
 ├── server/
 │   ├── services/
-│   │   ├── ATSSimulator.js      # Brain 1: ATS analysis
-│   │   ├── RecruiterSimulator.js # Brain 2: Human behavior
-│   │   ├── CVIntelligenceLayer.js # AI-powered insights
-│   │   └── CVAnalyzer.js        # Main orchestrator
-│   └── index.js                 # Express server
-├── pages/
-│   ├── index.js                 # Main application
-│   └── _app.js                  # Next.js wrapper
+│   │   ├── ATSSimulator.js
+│   │   ├── RecruiterSimulator.js
+│   │   ├── CVIntelligenceLayer.js
+│   │   ├── CVAnalyzer.js
+│   │   ├── CVRewriter.js
+│   │   └── PDFGenerator.js
+│   └── index.js          # Express API
+├── pages/                # Next.js frontend
 ├── components/
-│   ├── JobInput.js              # Job description form
-│   ├── CVUpload.js              # File upload interface
-│   ├── AnalysisResults.js       # Results dashboard
-│   └── LoadingSpinner.js        # Loading states
-└── styles/
-    └── globals.css              # Tailwind CSS
+├── styles/
+└── README.md
 ```
 
-### Adding New Features
+---
 
-**New ATS Mode:**
-1. Extend `ATSSimulator.js` with mode-specific logic
-2. Add mode parameter to API endpoints
-3. Update frontend mode selector
+## ⚠️ Known Limitations (Honest & Important)
 
-**New Recruiter Persona:**
-1. Add persona logic to `RecruiterSimulator.js`
-2. Implement persona-specific scanning patterns
-3. Update UI persona selector
+* **Scanned PDFs** cannot be read (image-only PDFs)
+* Cloudflare Workers **not supported**
+* PDF text extraction depends on document quality
+* Large CVs are truncated to stay within AI limits
 
-**New Analysis Type:**
-1. Create new service in `services/` directory
-2. Integrate with `CVAnalyzer.js`
-3. Add corresponding UI tab
+---
 
-## 🚀 Deployment
+## 🚀 Deployment (Recommended)
 
-### Environment Setup
-```bash
-# Production environment variables
-NODE_ENV=production
-OPENAI_API_KEY=your_production_key
-DATABASE_URL=your_postgres_url
-NEXT_PUBLIC_API_URL=https://your-domain.com
-```
+### Best Option
 
-### Docker Deployment (Optional)
+* **Node.js server** on:
+
+  * Oracle Cloud VM
+  * Fly.io
+  * Railway
+* **Cloudflare** for:
+
+  * DNS
+  * SSL
+  * CDN
+  * DDoS protection
+
+### Docker (Optional)
+
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 COPY . .
 RUN npm run build
 EXPOSE 3000 3001
 CMD ["npm", "start"]
 ```
 
+---
+
 ## 📊 Performance Benchmarks
 
-- **Analysis Time**: 30-60 seconds per CV
-- **File Support**: PDF, TXT up to 5MB
-- **Accuracy**: 85%+ correlation with actual recruiter decisions
-- **Throughput**: 100+ analyses per hour
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🎯 Roadmap
-
-### Phase 1 (Current)
-- [x] Dual-brain analysis system
-- [x] Job-specific matching
-- [x] Bullet-level intelligence
-- [x] Real-time feedback
-
-### Phase 2 (Next 4 weeks)
-- [ ] ATS-specific modes (Workday, Greenhouse)
-- [ ] Recruiter persona simulation
-- [ ] Learning loop (callback tracking)
-- [ ] Advanced bias detection
-
-### Phase 3 (2-3 months)
-- [ ] Multi-language support
-- [ ] Industry-specific analysis
-- [ ] Team collaboration features
-- [ ] API for third-party integrations
+* Avg analysis time: **30–60s**
+* Max CV size: **5MB**
+* Formats: PDF, DOCX, TXT
+* ATS correlation accuracy: **~85%**
+* Throughput: **100+ CVs/hour**
 
 ---
 
-**Built with ❤️ for job seekers who want to win**
+## 🧭 Roadmap
 
-*This isn't just another ATS checker. It's the CV analysis tool that thinks like both machines and humans to give you the real answer: "Will this CV get me interviews?"*# cv-reviewer
-# cv-reviewer
-# cv-reviewer
+### Phase 1 (Current)
+
+* [x] Dual-brain analysis
+* [x] Job-specific scoring
+* [x] Bullet-level intelligence
+* [x] CV rewriting
+
+### Phase 2
+
+* [ ] ATS-specific engines
+* [ ] Recruiter personas
+* [ ] Learning feedback loop
+* [ ] Advanced bias detection
+
+### Phase 3
+
+* [ ] Multi-language CVs
+* [ ] Industry-specific scoring
+* [ ] Team collaboration
+* [ ] Public API access
+
+---
+
+## 📝 License
+
+MIT License
+
+---
+
+## 🧠 Final Note
+
+This is **not another generic ATS checker**.
+
+This system answers the only question that matters:
+
+> **"Will this CV actually get me interviews?"**
+
+Built with ❤️ for job seekers who want real results — not false confidence.
+
+---
+
+If you want next:
+
+* ✅ **Cloudflare + Node deployment guide**
+* ✅ **Fix PDF extraction edge cases**
+* ✅ **Refactor for Workers compatibility**
+* ✅ **Monetization & SaaS plan**
+
+Just tell me.
+
+
+

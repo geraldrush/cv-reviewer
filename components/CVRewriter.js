@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function CVRewriter({ analysis, jobData, originalCV, onBack }) {
+export default function CVRewriter({ analysis, jobData, originalCV, structuredCV, onBack }) {
   const [rewriting, setRewriting] = useState(false);
   const [rewrittenCV, setRewrittenCV] = useState(null);
   const [improvements, setImprovements] = useState(null);
@@ -39,7 +39,7 @@ export default function CVRewriter({ analysis, jobData, originalCV, onBack }) {
     }
   };
 
-  const handleDownload = async (cvText, format) => {
+  const handleDownload = async (cvText, format, structured = null) => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/download-cv`, {
         method: 'POST',
@@ -48,12 +48,14 @@ export default function CVRewriter({ analysis, jobData, originalCV, onBack }) {
         },
         body: JSON.stringify({
           cvText: cvText,
+          structured: structured,
           format: format
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Download failed');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Download failed');
       }
 
       const blob = await response.blob();
@@ -165,7 +167,7 @@ export default function CVRewriter({ analysis, jobData, originalCV, onBack }) {
                   <pre className="text-sm text-gray-700 whitespace-pre-wrap">{originalCV}</pre>
                 </div>
                 <button
-                  onClick={() => handleDownload(originalCV, downloadFormat)}
+                  onClick={() => handleDownload(originalCV, downloadFormat, structuredCV)}
                   className="mt-4 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Download Original
@@ -188,7 +190,7 @@ export default function CVRewriter({ analysis, jobData, originalCV, onBack }) {
                     <option value="md">Markdown</option>
                   </select>
                   <button
-                    onClick={() => handleDownload(rewrittenCV, downloadFormat)}
+                    onClick={() => handleDownload(rewrittenCV, downloadFormat, structuredCV)}
                     className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                   >
                     Download Improved CV

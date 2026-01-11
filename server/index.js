@@ -3,7 +3,9 @@ const cors = require('cors');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
 const PDFGenerator = require('./services/PDFGenerator');
+const UserTierService = require('./services/UserTierService');
 require('dotenv').config();
 
 const CVAnalyzer = require('./services/CVAnalyzer');
@@ -11,10 +13,11 @@ const CVAnalyzer = require('./services/CVAnalyzer');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Initialize CV Analyzer and PDF Generator
+// Initialize services
 console.log('Initializing CV Analyzer with OpenAI API key:', process.env.OPENAI_API_KEY ? 'Present' : 'Missing');
 const cvAnalyzer = new CVAnalyzer(process.env.OPENAI_API_KEY);
 const pdfGenerator = new PDFGenerator();
+const userTierService = new UserTierService();
 console.log('CV Analyzer initialized successfully');
 
 // Middleware
@@ -28,17 +31,51 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf' || file.mimetype === 'text/plain') {
+    const allowedTypes = [
+      'application/pdf',
+      'text/plain',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF and TXT files are allowed'), false);
+      cb(new Error('Only PDF, DOCX, and TXT files are allowed'), false);
     }
   }
 });
 
-// PDF text extraction function with multiple methods
+// Unified text extraction function
+function cleanText(text) {
+  return text
+    .replace(/\x00/g, '')                 // null bytes
+    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '') // non-printable
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function extractCvText(file) {
+  if (!file) throw new Error('No file uploaded');
+
+  const { mimetype, buffer } = file;
+
+  switch (mimetype) {
+    case 'application/pdf':
+      const pdfText = await extractPDFText(buffer);
+      return cleanText(pdfText);
+
+    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+      const result = await mammoth.extractRawText({ buffer });
+      return cleanText(result.value);
+
+    case 'text/plain':
+      return cleanText(buffer.toString('utf-8'));
+
+    default:
+      throw new Error(`Unsupported CV format: ${mimetype}`);
+  }
+}
 async function extractPDFText(buffer) {
-  // Method 1: Try pdf-parse
+  // Method 1: Try pdf-parse with basic options
   try {
     const data = await pdfParse(buffer, {
       normalizeWhitespace: true,
@@ -47,28 +84,13 @@ async function extractPDFText(buffer) {
     
     if (data.text && data.text.trim().length > 50) {
       console.log('PDF extracted successfully with pdf-parse');
-      return data.text;
+      return cleanText(data.text);
     }
   } catch (error) {
     console.log('pdf-parse failed:', error.message);
   }
 
-  // Method 2: Try pdf-lib
-  try {
-    const { PDFDocument } = require('pdf-lib');
-    const pdfDoc = await PDFDocument.load(buffer);
-    const pages = pdfDoc.getPages();
-    
-    // For corrupted PDFs, return a helpful message instead of empty text
-    if (pages.length > 0) {
-      console.log('PDF structure detected but text extraction limited');
-      return 'PDF file detected but text extraction failed. Please copy and paste your CV text directly or save as a TXT file for better results. You can also try using the CV Builder to create a new CV from scratch.';
-    }
-  } catch (error) {
-    console.log('pdf-lib failed:', error.message);
-  }
-
-  // Method 3: Try with different pdf-parse options
+  // Method 2: Try with alternative pdf-parse options
   try {
     const data = await pdfParse(buffer, {
       normalizeWhitespace: false,
@@ -78,7 +100,7 @@ async function extractPDFText(buffer) {
     
     if (data.text && data.text.trim().length > 20) {
       console.log('PDF extracted with alternative pdf-parse options');
-      return data.text;
+      return cleanText(data.text);
     }
   } catch (error) {
     console.log('Alternative pdf-parse failed:', error.message);
@@ -96,7 +118,7 @@ app.get('/health', (req, res) => {
 // Main CV analysis endpoint
 app.post('/api/analyze-cv', upload.single('cv'), async (req, res) => {
   try {
-    const { jobDescription, targetRole, companyName } = req.body;
+    const { jobDescription, targetRole, companyName, userTier } = req.body;
     
     if (!req.file) {
       return res.status(400).json({ error: 'CV file is required' });
@@ -107,48 +129,41 @@ app.post('/api/analyze-cv', upload.single('cv'), async (req, res) => {
     }
 
     // Extract text from uploaded file
-    let cvText = '';
+    const cvText = await extractCvText(req.file);
     
-    if (req.file.mimetype === 'application/pdf') {
-      cvText = await extractPDFText(req.file.buffer);
-    if (!cvText || cvText.trim().length < 50) {
-        return res.status(400).json({ 
-          error: 'PDF text extraction failed',
-          message: 'Could not extract readable text from this PDF. Please try one of these options: 1) Copy and paste your CV text directly using the text input option, 2) Save your CV as a TXT file and upload again, or 3) Use our CV Builder to create a new CV from scratch.',
-          success: false,
-          suggestions: [
-            'Copy and paste CV text directly',
-            'Save CV as TXT file and re-upload', 
-            'Use the CV Builder to create from scratch'
-          ]
-        });
-      }
-    } else {
-      cvText = req.file.buffer.toString('utf-8');
-    }
-
     if (!cvText || cvText.trim().length < 50) {
       return res.status(400).json({ 
-        error: 'CV text is too short or could not be extracted',
-        message: 'The CV text appears to be too short for analysis. Please ensure your CV contains at least 100 characters of meaningful content.',
+        error: 'CV text extraction failed or too short',
+        message: 'Could not extract readable text from this file. Please try: 1) Copy and paste your CV text directly, 2) Save as TXT file, or 3) Use our CV Builder.',
         success: false
       });
     }
 
-    // Perform analysis
+    const tier = userTierService.getUserTier(userTier);
     let analysis;
-    if (companyName && targetRole) {
-      analysis = await cvAnalyzer.analyzeForSpecificJob(cvText, jobDescription, companyName, targetRole);
+
+    if (userTierService.canUseAI(tier)) {
+      // Premium: Full AI analysis
+      if (companyName && targetRole) {
+        analysis = await cvAnalyzer.analyzeForSpecificJob(cvText, jobDescription, companyName, targetRole);
+      } else {
+        analysis = await cvAnalyzer.analyzeCV(cvText, jobDescription, targetRole || '');
+      }
     } else {
-      analysis = await cvAnalyzer.analyzeCV(cvText, jobDescription, targetRole || '');
+      // Free: Basic code-only analysis
+      analysis = userTierService.getBasicAnalysis(cvText, jobDescription);
     }
 
     analysis.id = uuidv4();
+    analysis.userTier = tier;
     
     res.json({
       success: true,
       analysis: analysis,
-      message: `CV analysis completed with ${analysis.overallScore}% overall score`
+      extractedCvText: cvText,
+      message: tier === 'premium' ? 
+        `CV analysis completed with ${analysis.overallScore}% overall score` :
+        'Basic analysis completed. Upgrade to Premium for AI-powered insights.'
     });
 
   } catch (error) {
@@ -164,19 +179,24 @@ app.post('/api/analyze-cv', upload.single('cv'), async (req, res) => {
 // CV rewrite endpoint
 app.post('/api/rewrite-cv', upload.single('cv'), async (req, res) => {
   try {
-    const { jobDescription, targetRole, companyName } = req.body;
+    const { jobDescription, targetRole, companyName, userTier } = req.body;
     
     if (!req.file || !jobDescription) {
       return res.status(400).json({ error: 'CV file and job description are required' });
     }
 
-    // Extract text from uploaded file
-    let cvText = '';
-    if (req.file.mimetype === 'application/pdf') {
-      cvText = await extractPDFText(req.file.buffer);
-    } else {
-      cvText = req.file.buffer.toString('utf-8');
+    const tier = userTierService.getUserTier(userTier);
+    
+    if (!userTierService.canRewriteCV(tier)) {
+      return res.status(403).json({ 
+        error: 'Premium feature required',
+        message: 'CV rewriting is available for Premium users only. Upgrade to access AI-powered CV improvements.',
+        success: false
+      });
     }
+
+    // Extract text from uploaded file
+    const cvText = await extractCvText(req.file);
 
     // First analyze the CV
     const analysis = await cvAnalyzer.analyzeCV(cvText, jobDescription, targetRole || '');
@@ -268,22 +288,41 @@ app.post('/api/build-cv', async (req, res) => {
 // Download improved CV endpoint
 app.post('/api/download-cv', async (req, res) => {
   try {
-    const { cvText, structured, format = 'pdf' } = req.body;
+    const { cvText, structured, format = 'pdf', userTier } = req.body;
     
-    if (!cvText && !structured) {
-      return res.status(400).json({ error: 'CV data is required' });
+    const tier = userTierService.getUserTier(userTier);
+    
+    if (format === 'pdf' && !userTierService.canDownloadPDF(tier)) {
+      return res.status(403).json({ 
+        error: 'Premium feature required',
+        message: 'PDF download is available for Premium users only. You can download TXT format for free.',
+        success: false
+      });
     }
-
+    
     if (format === 'pdf') {
-      // Use structured data if available, otherwise parse text
-      const cvData = structured || pdfGenerator.parseTextCV(cvText);
-      const pdfBuffer = await pdfGenerator.generateATSOptimizedPDF(cvData);
+      let pdfBuffer;
+      
+      if (structured) {
+        // Use structured data for proper formatting
+        pdfBuffer = pdfGenerator.generateATSOptimizedPDF(structured);
+      } else if (cvText) {
+        // Use raw text to match preview exactly
+        pdfBuffer = pdfGenerator.generateATSOptimizedPDF(cvText);
+      } else {
+        return res.status(400).json({ 
+          error: 'CV data is required for PDF generation'
+        });
+      }
       
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="optimized_cv_${Date.now()}.pdf"`);
-      res.setHeader('Content-Length', pdfBuffer.length);
-      res.end(pdfBuffer, 'binary');
+      res.send(Buffer.from(pdfBuffer));
     } else {
+      if (!cvText) {
+        return res.status(400).json({ error: 'CV text is required for text formats' });
+      }
+      
       const downloadData = cvAnalyzer.cvRewriter.formatForDownload(cvText, format);
       
       res.setHeader('Content-Type', downloadData.mimeType);

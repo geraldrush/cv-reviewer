@@ -27,160 +27,191 @@ class PDFGenerator {
   generateATSOptimizedPDF(cvData, filename = 'optimized_cv.pdf') {
     try {
       const doc = new jsPDF();
-      let yPosition = 30;
+      let y = 30;
       
-      // Add content
+      // If cvData is a string (raw text), render it directly
+      if (typeof cvData === 'string') {
+        return this.generatePDFFromText(cvData);
+      }
+      
+      // Name
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(16);
-      doc.text(cvData.name || 'Your Name', 20, yPosition);
-      yPosition += 10;
+      doc.text(cvData.name || 'Your Name', 20, y);
+      y += 10;
       
+      // Contact
+      doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       const contact = [cvData.phone, cvData.email, cvData.location].filter(Boolean).join(' | ');
-      doc.text(contact, 20, yPosition);
-      yPosition += 20;
+      doc.text(contact, 20, y);
+      y += 20;
       
       // Summary
       if (cvData.summary) {
-        doc.setFontSize(12);
-        doc.text('PROFESSIONAL SUMMARY', 20, yPosition);
-        yPosition += 8;
-        doc.setFontSize(10);
-        doc.text(cvData.summary, 20, yPosition, { maxWidth: 170 });
-        yPosition += 20;
+        y = this.addSection(doc, 'PROFESSIONAL SUMMARY', cvData.summary, y);
       }
       
-      return Buffer.from(doc.output('arraybuffer'));
+      // Experience
+      if (cvData.experience && cvData.experience.length > 0) {
+        y = this.addExperienceSection(doc, cvData.experience, y);
+      }
+      
+      // Education
+      if (cvData.education && cvData.education.length > 0) {
+        y = this.addEducationSection(doc, cvData.education, y);
+      }
+      
+      // Skills
+      if (cvData.skills && cvData.skills.length > 0) {
+        y = this.addSection(doc, 'SKILLS', cvData.skills.join(' • '), y);
+      }
+      
+      return new Uint8Array(doc.output('arraybuffer'));
     } catch (error) {
       throw error;
     }
   }
 
-  addATSHeader(doc, cvData) {
-    // Name (24pt, largest text on page, no icons for ATS)
-    doc.font('Helvetica-Bold')
-       .fontSize(24)
-       .fillColor('#000000')
-       .text(cvData.name || 'FULL NAME', { align: 'left' });
+  generatePDFFromText(cvText) {
+    const doc = new jsPDF();
+    let y = 30;
+    const lines = cvText.split('\n');
+    let currentSection = null;
     
-    doc.moveDown(0.2);
+    // Find first two non-empty lines (name and contact)
+    let nameIndex = -1;
+    let contactIndex = -1;
     
-    // Simple line under name
-    doc.strokeColor('#000000')
-       .lineWidth(1)
-       .moveTo(54, doc.y)
-       .lineTo(200, doc.y)
-       .stroke();
-    
-    doc.moveDown(0.4);
-    
-    // Contact info (only show real data, no placeholders)
-    const contactInfo = [
-      cvData.phone,
-      cvData.email,
-      cvData.linkedin,
-      cvData.github,
-      cvData.location
-    ].filter(info => info && 
-      !info.includes('555-123') && 
-      !info.includes('example.com') && 
-      !info.includes('yourname') && 
-      !info.includes('yourusername') &&
-      !info.includes('City, Country')
-    );
-    
-    if (contactInfo.length > 0) {
-      doc.font('Helvetica')
-         .fontSize(10)
-         .fillColor('#000000');
-      
-      // Display contact info in clean format
-      contactInfo.forEach((info, index) => {
-        if (index % 2 === 0) {
-          doc.text(info, 54, doc.y, { continued: true });
-          if (contactInfo[index + 1]) {
-            doc.text(`    ${contactInfo[index + 1]}`);
-          } else {
-            doc.text('');
-          }
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].trim()) {
+        if (nameIndex === -1) {
+          nameIndex = i;
+        } else if (contactIndex === -1) {
+          contactIndex = i;
+          break;
         }
-      });
+      }
     }
     
-    doc.moveDown(1.5);
+    // Standard resume header - centered
+    if (nameIndex >= 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      const nameWidth = doc.getTextWidth(lines[nameIndex].trim());
+      const centerX = (210 - nameWidth) / 2;
+      doc.text(lines[nameIndex].trim(), centerX, y);
+      y += 8;
+    }
+    
+    if (contactIndex >= 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      const contactWidth = doc.getTextWidth(lines[contactIndex].trim());
+      const centerX = (210 - contactWidth) / 2;
+      doc.text(lines[contactIndex].trim(), centerX, y);
+      y += 15;
+    }
+    
+    // Process remaining content
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      
+      // Skip header lines and empty lines
+      if (!trimmed || index === nameIndex || index === contactIndex) {
+        return;
+      }
+      
+      // Section headers (ALL CAPS, bold)
+      if (trimmed === trimmed.toUpperCase() && trimmed.length > 2 && trimmed.length < 50 && 
+          !trimmed.includes('@') && !trimmed.includes('|') && !trimmed.includes('•')) {
+        y += 8;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text(trimmed, 20, y);
+        y += 4;
+        // Add horizontal line under section
+        doc.setLineWidth(0.5);
+        doc.line(20, y, 190, y);
+        y += 10;
+        currentSection = trimmed;
+        return;
+      }
+      
+      // Job titles and subheadings (bold)
+      if (currentSection && !trimmed.startsWith('•') && !trimmed.startsWith('-') && 
+          (trimmed.includes('|') || (trimmed.length > 10 && trimmed.length < 80))) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        const wrappedLines = doc.splitTextToSize(trimmed, 170);
+        doc.text(wrappedLines, 20, y);
+        y += wrappedLines.length * 5 + 3;
+        return;
+      }
+      
+      // Regular content (normal weight)
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const wrappedLines = doc.splitTextToSize(trimmed, 170);
+      
+      // Check for new page
+      if (y + (wrappedLines.length * 5) > 280) {
+        doc.addPage();
+        y = 30;
+      }
+      
+      doc.text(wrappedLines, 20, y);
+      y += wrappedLines.length * 5 + 2;
+    });
+    
+    return new Uint8Array(doc.output('arraybuffer'));
   }
 
-  addATSSection(doc, title, content) {
-    // Section heading
-    doc.font('Helvetica-Bold')
-       .fontSize(14)
-       .fillColor('#000000')
-       .text(title.toUpperCase(), { align: 'left' });
+  addSection(doc, title, content, y) {
+    // Section header
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(title, 20, y);
+    y += 8;
     
-    // Simple line under section
-    doc.strokeColor('#000000')
-       .lineWidth(0.5)
-       .moveTo(54, doc.y + 5)
-       .lineTo(541, doc.y + 5)
-       .stroke();
-    
-    doc.moveDown(0.8);
+    // Separator line (text-based for ATS)
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('————————————————————————————————————————————————', 20, y);
+    y += 8;
     
     // Content
-    if (Array.isArray(content)) {
-      content.forEach((skill, index) => {
-        doc.font('Helvetica')
-           .fontSize(11)
-           .fillColor('#000000')
-           .text(`• ${skill}`, { 
-             align: 'left',
-             indent: 10
-           });
-      });
-    } else {
-      doc.font('Helvetica')
-         .fontSize(11)
-         .fillColor('#000000')
-         .text(content, { 
-           align: 'left', 
-           lineGap: 3,
-           indent: 10
-         });
-    }
+    doc.setFontSize(10);
+    const lines = doc.splitTextToSize(content, 170);
+    doc.text(lines, 20, y);
+    y += lines.length * 5 + 15;
     
-    doc.moveDown(1.8);
+    return y;
   }
 
-  addATSExperienceSection(doc, experiences) {
-    // Section heading
-    doc.font('Helvetica-Bold')
-       .fontSize(14)
-       .fillColor('#000000')
-       .text('EXPERIENCE', { align: 'left' });
+  addExperienceSection(doc, experiences, y) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('EXPERIENCE', 20, y);
+    y += 8;
     
-    // Simple line
-    doc.strokeColor('#000000')
-       .lineWidth(0.5)
-       .moveTo(54, doc.y + 5)
-       .lineTo(541, doc.y + 5)
-       .stroke();
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('————————————————————————————————————————————————', 20, y);
+    y += 12;
     
-    doc.moveDown(0.8);
-
-    experiences.forEach((exp, index) => {
+    experiences.forEach(exp => {
       // Job title
-      doc.font('Helvetica-Bold')
-         .fontSize(12)
-         .fillColor('#000000')
-         .text(exp.title || exp.position || 'Position Title', { align: 'left' });
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(exp.title || exp.position || 'Position', 20, y);
+      y += 6;
       
       // Company and duration
-      const companyLine = `${exp.company || 'Company'} • ${exp.duration || 'Duration'}`;
-      doc.font('Helvetica')
-         .fontSize(10)
-         .fillColor('#000000')
-         .text(companyLine, { align: 'left' });
-      
-      doc.moveDown(0.3);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`${exp.company || 'Company'} • ${exp.duration || 'Duration'}`, 20, y);
+      y += 8;
       
       // Responsibilities
       if (exp.responsibilities) {
@@ -189,94 +220,67 @@ class PDFGenerator {
           : exp.responsibilities.split('\n').filter(line => line.trim());
         
         bullets.forEach(resp => {
-          const cleanResp = resp.replace(/^[•\-\*]\s*/, '');
-          doc.font('Helvetica')
-             .fontSize(11)
-             .fillColor('#000000')
-             .text(`• ${cleanResp}`, { 
-               align: 'left',
-               indent: 15,
-               lineGap: 2
-             });
+          const clean = resp.replace(/^[•\-\*]\s*/, '');
+          const lines = doc.splitTextToSize(`• ${clean}`, 160);
+          doc.text(lines, 25, y);
+          y += lines.length * 5;
         });
       }
-      
-      if (index < experiences.length - 1) {
-        doc.moveDown(1.5);
-      }
+      y += 8;
     });
     
-    doc.moveDown(2);
+    return y + 10;
   }
 
-  addATSEducationSection(doc, education) {
-    // Section heading
-    doc.font('Helvetica-Bold')
-       .fontSize(14)
-       .fillColor('#000000')
-       .text('EDUCATION', { align: 'left' });
+  addEducationSection(doc, education, y) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('EDUCATION', 20, y);
+    y += 8;
     
-    // Simple line
-    doc.strokeColor('#000000')
-       .lineWidth(0.5)
-       .moveTo(54, doc.y + 5)
-       .lineTo(541, doc.y + 5)
-       .stroke();
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('————————————————————————————————————————————————', 20, y);
+    y += 12;
     
-    doc.moveDown(0.8);
-
-    education.forEach((edu, index) => {
-      // Degree
-      doc.font('Helvetica-Bold')
-         .fontSize(12)
-         .fillColor('#000000')
-         .text(edu.degree || 'Degree', { align: 'left' });
+    education.forEach(edu => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(edu.degree || 'Degree', 20, y);
+      y += 6;
       
-      // School and year
-      const schoolLine = `${edu.school || 'School'} • ${edu.year || 'Year'}`;
-      doc.font('Helvetica')
-         .fontSize(10)
-         .fillColor('#000000')
-         .text(schoolLine, { align: 'left' });
-      
-      if (index < education.length - 1) {
-        doc.moveDown(1);
-      }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`${edu.school || 'School'} • ${edu.year || 'Year'}`, 20, y);
+      y += 10;
     });
     
-    doc.moveDown(2);
+    return y + 10;
   }
 
-  // Convert plain text CV to structured data
   parseTextCV(cvText) {
     const lines = cvText.split('\n').filter(line => line.trim());
     const cvData = {};
 
-    // Extract name (first line, all caps)
-    cvData.name = lines[0] && lines[0].trim().toUpperCase() === lines[0].trim() ? lines[0].trim() : 'Your Name';
+    // Extract name (first line)
+    cvData.name = lines[0] || 'Your Name';
 
-    // Extract contact info with better patterns
+    // Extract contact info
     const emailMatch = cvText.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
     const phoneMatch = cvText.match(/\+?\d{2,3}[-\s]?\d{3,4}[-\s]?\d{3,4}[-\s]?\d{3,4}/);
-    const linkedinMatch = cvText.match(/linkedin\.com\/in\/[^\s]+/);
-    const githubMatch = cvText.match(/github\.com\/[^\s]+/);
     const locationMatch = cvText.match(/([A-Za-z\s]+,\s*[A-Za-z\s]+)/);
 
-    cvData.email = emailMatch && !emailMatch[0].includes('example.com') ? emailMatch[0] : '';
-    cvData.phone = phoneMatch && !phoneMatch[0].includes('123-456') && !phoneMatch[0].includes('555-') ? phoneMatch[0] : '';
-    cvData.linkedin = linkedinMatch && !linkedinMatch[0].includes('yourname') ? linkedinMatch[0] : '';
-    cvData.github = githubMatch && !githubMatch[0].includes('yourusername') && !githubMatch[0].includes('username') ? githubMatch[0] : '';
+    cvData.email = emailMatch ? emailMatch[0] : '';
+    cvData.phone = phoneMatch ? phoneMatch[0] : '';
     cvData.location = locationMatch ? locationMatch[0] : '';
 
     // Extract sections
     const sections = this.extractSections(cvText);
     
-    cvData.summary = sections['professional summary'] || sections.summary || sections.objective || '';
-    cvData.skills = this.parseSkills(sections['core skills'] || sections.skills || sections['technical skills'] || '');
-    cvData.certifications = sections.certifications || '';
-    cvData.experience = this.parseExperience(sections['work experience'] || sections.experience || '');
+    cvData.summary = sections['professional summary'] || sections.summary || '';
+    cvData.skills = this.parseSkills(sections.skills || '');
+    cvData.experience = this.parseExperience(sections.experience || sections['work experience'] || '');
     cvData.education = this.parseEducation(sections.education || '');
-    cvData.projects = this.parseProjects(sections.projects || '');
 
     return cvData;
   }
@@ -284,28 +288,31 @@ class PDFGenerator {
   extractSections(cvText) {
     const sections = {};
     const sectionHeaders = [
-      'professional summary', 'summary', 'objective', 'experience', 'work experience', 'employment',
-      'education', 'skills', 'technical skills', 'core skills', 'certifications', 'projects'
+      'professional summary', 'summary', 'objective',
+      'experience', 'work experience', 'employment', 'career history',
+      'education', 'academic background',
+      'skills', 'technical skills', 'core skills', 'competencies',
+      'projects', 'certifications'
     ];
-
     let currentSection = null;
     let currentContent = [];
 
     cvText.split('\n').forEach(line => {
       const trimmedLine = line.trim().toLowerCase();
       
-      // Check if line is a section header
+      // Check if line is a section header (all caps or matches header list)
+      const isAllCaps = line.trim() === line.trim().toUpperCase() && line.trim().length > 2;
       const matchedHeader = sectionHeaders.find(header => 
-        (trimmedLine.includes(header) || trimmedLine === header) && line.trim().length < 50
+        trimmedLine === header || trimmedLine.includes(header)
       );
 
-      if (matchedHeader) {
+      if ((isAllCaps && line.trim().length < 50) || matchedHeader) {
         // Save previous section
         if (currentSection && currentContent.length > 0) {
           sections[currentSection] = currentContent.join('\n').trim();
         }
         
-        currentSection = matchedHeader;
+        currentSection = matchedHeader || trimmedLine;
         currentContent = [];
       } else if (currentSection && line.trim()) {
         currentContent.push(line);
@@ -322,38 +329,59 @@ class PDFGenerator {
 
   parseExperience(experienceText) {
     if (!experienceText) return [];
-
     const experiences = [];
     const lines = experienceText.split('\n').filter(line => line.trim());
     
     let currentExp = null;
     let responsibilities = [];
 
-    lines.forEach(line => {
-      // Check if line contains dates (likely a job entry)
-      if (/\d{4}/.test(line) && (line.includes('-') || line.includes('to') || line.includes('present'))) {
-        // Save previous experience
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      
+      // Check if this line looks like a job title/company line
+      if (trimmed && !trimmed.startsWith('•') && !trimmed.startsWith('-') && !trimmed.startsWith('*')) {
+        // If we have a current experience, save it
         if (currentExp) {
-          currentExp.responsibilities = responsibilities.join('\n');
+          currentExp.responsibilities = responsibilities;
           experiences.push(currentExp);
         }
-
-        // Start new experience
-        const parts = line.split('|').map(p => p.trim());
-        currentExp = {
-          position: parts[0] || 'Position',
-          company: parts[1] || 'Company',
-          duration: parts[2] || line.match(/\d{4}.*/) ? line.match(/\d{4}.*/)[0] : ''
-        };
+        
+        // Check if line contains company and duration info (with |)
+        if (trimmed.includes('|')) {
+          const parts = trimmed.split('|').map(p => p.trim());
+          currentExp = {
+            title: parts[0] || 'Position',
+            company: parts[1] || 'Company',
+            duration: parts[2] || 'Duration'
+          };
+        } else if (index + 1 < lines.length && lines[index + 1].includes('•')) {
+          // Next line has bullets, so this is likely a job title
+          currentExp = {
+            title: trimmed,
+            company: 'Company',
+            duration: 'Duration'
+          };
+        } else {
+          // Single line job entry
+          currentExp = {
+            title: trimmed,
+            company: 'Company', 
+            duration: 'Duration'
+          };
+        }
         responsibilities = [];
-      } else if (currentExp && line.trim()) {
-        responsibilities.push(line);
+      } else if (currentExp && (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*'))) {
+        // This is a responsibility bullet
+        responsibilities.push(trimmed.replace(/^[•\-\*]\s*/, ''));
+      } else if (currentExp && trimmed && !trimmed.match(/^[A-Z\s]+$/)) {
+        // Non-bullet content that's not a section header
+        responsibilities.push(trimmed);
       }
     });
 
-    // Save last experience
+    // Save the last experience
     if (currentExp) {
-      currentExp.responsibilities = responsibilities.join('\n');
+      currentExp.responsibilities = responsibilities;
       experiences.push(currentExp);
     }
 
@@ -362,7 +390,6 @@ class PDFGenerator {
 
   parseEducation(educationText) {
     if (!educationText) return [];
-
     const education = [];
     const lines = educationText.split('\n').filter(line => line.trim());
 
@@ -372,8 +399,7 @@ class PDFGenerator {
         education.push({
           degree: parts[0] || line,
           school: parts[1] || '',
-          year: line.match(/\d{4}/) ? line.match(/\d{4}/)[0] : '',
-          gpa: line.match(/gpa:?\s*[\d.]+/i) ? line.match(/gpa:?\s*([\d.]+)/i)[1] : ''
+          year: line.match(/\d{4}/) ? line.match(/\d{4}/)[0] : ''
         });
       }
     });
@@ -381,147 +407,12 @@ class PDFGenerator {
     return education;
   }
 
-  addATSProjectsSection(doc, projects) {
-    // Section heading
-    doc.font('Helvetica-Bold')
-       .fontSize(14)
-       .fillColor('#000000')
-       .text('PROJECTS', { align: 'left' });
-    
-    // Simple line
-    doc.strokeColor('#000000')
-       .lineWidth(0.5)
-       .moveTo(54, doc.y + 5)
-       .lineTo(541, doc.y + 5)
-       .stroke();
-    
-    doc.moveDown(0.8);
-
-    projects.forEach((project, index) => {
-      // Project name with tech stack
-      const projectTitle = `${project.name || 'Project Name'} | ${project.techStack || 'Tech Stack'}`;
-      doc.font('Helvetica-Bold')
-         .fontSize(12)
-         .fillColor('#000000')
-         .text(projectTitle, { align: 'left' });
-      
-      // Link if available
-      if (project.link) {
-        doc.font('Helvetica')
-           .fontSize(10)
-           .fillColor('#000000')
-           .text(project.link, { align: 'left' });
-      }
-      
-      doc.moveDown(0.3);
-      
-      // Project description
-      if (project.description) {
-        doc.font('Helvetica')
-           .fontSize(11)
-           .fillColor('#000000')
-           .text(project.description, { 
-             align: 'left',
-             indent: 15
-           });
-      }
-      
-      // Project achievements
-      if (project.achievements) {
-        const achievements = Array.isArray(project.achievements) 
-          ? project.achievements 
-          : project.achievements.split('\n').filter(line => line.trim());
-        
-        achievements.forEach(achievement => {
-          doc.font('Helvetica')
-             .fontSize(11)
-             .fillColor('#000000')
-             .text(`• ${achievement}`, { 
-               align: 'left',
-               indent: 15,
-               lineGap: 2
-             });
-        });
-      }
-      
-      if (index < projects.length - 1) {
-        doc.moveDown(1.5);
-      }
-    });
-    
-    doc.moveDown(2);
-  }
-
   parseSkills(skillsText) {
     if (!skillsText) return [];
-    
-    const lines = skillsText.split('\n').filter(line => line.trim());
-    const skills = [];
-    
-    lines.forEach(line => {
-      const cleanLine = line.replace(/^[-•]\s*/, '').trim();
-      if (cleanLine && 
-          !cleanLine.toLowerCase().includes('placeholder') &&
-          !cleanLine.toLowerCase().includes('contact info') &&
-          !cleanLine.toLowerCase().includes('email:') &&
-          !cleanLine.toLowerCase().includes('phone:')) {
-        skills.push(cleanLine);
-      }
-    });
-    
-    return skills;
-  }
-
-  parseProjects(projectsText) {
-    if (!projectsText) return [];
-    
-    const projects = [];
-    const lines = projectsText.split('\n').filter(line => line.trim());
-    
-    let currentProject = null;
-    let achievements = [];
-    
-    lines.forEach(line => {
-      const trimmed = line.trim();
-      
-      if (trimmed.includes('|') && !trimmed.startsWith('•') && !trimmed.startsWith('-')) {
-        if (currentProject) {
-          currentProject.achievements = achievements;
-          projects.push(currentProject);
-        }
-        
-        const parts = trimmed.split('|');
-        currentProject = {
-          name: parts[0].trim(),
-          techStack: parts[1] ? parts[1].trim() : '',
-          link: '',
-          description: '',
-          achievements: []
-        };
-        achievements = [];
-      }
-      else if (trimmed.includes('github.com') && !trimmed.includes('yourusername')) {
-        if (currentProject) currentProject.link = trimmed;
-      }
-      else if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
-        const achievement = trimmed.replace(/^[•-]\s*/, '');
-        if (achievement && !achievement.toLowerCase().includes('placeholder')) {
-          achievements.push(achievement);
-        }
-      }
-      else if (currentProject && trimmed && !trimmed.toLowerCase().includes('built an ats-compliant')) {
-        if (!currentProject.description) {
-          currentProject.description = trimmed;
-        }
-      }
-    });
-    
-    if (currentProject) {
-      currentProject.achievements = achievements;
-      projects.push(currentProject);
-    }
-    
-    return projects;
+    return skillsText.split('\n')
+      .filter(line => line.trim())
+      .map(line => line.replace(/^[-•]\s*/, '').trim())
+      .filter(skill => skill);
   }
 }
 

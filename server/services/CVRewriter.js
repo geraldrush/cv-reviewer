@@ -5,46 +5,82 @@ class CVRewriter {
     this.openai = new OpenAI({ apiKey: openaiApiKey });
   }
 
+  safeTruncateCV(text, maxChars = 3000) {
+    const sections = text.split(/(PROFESSIONAL SUMMARY|EXPERIENCE|EDUCATION|SKILLS)/i);
+    let result = '';
+    for (const part of sections) {
+      if ((result + part).length > maxChars) break;
+      result += part;
+    }
+    return result;
+  }
+
   async rewriteEntireCV(cvText, jobDescription, analysis) {
     try {
-      const missingKeywords = analysis.atsAnalysis?.keywordMatch?.mandatory?.missing?.slice(0, 10) || [];
-      const truncatedCV = cvText.length > 2500 ? cvText.substring(0, 2500) : cvText;
-      const truncatedJob = jobDescription.length > 800 ? jobDescription.substring(0, 800) : jobDescription;
+      const missingKeywords = analysis?.atsAnalysis?.keywordMatch?.mandatory?.missing?.slice(0, 8) || [];
+      const truncatedCV = this.safeTruncateCV(cvText);
+      const truncatedJob = jobDescription.substring(0, 1000);
       
-      const prompt = `Rewrite this CV to achieve 85%+ analysis score by including these EXACT keywords and improvements:
+      const prompt = `You are an expert ATS + recruiter CV writer.
 
-MISSING KEYWORDS (MUST INCLUDE): ${missingKeywords.join(', ')}
+Rewrite the CV below to improve both ATS parsing and recruiter appeal.
 
-JOB REQUIREMENTS: ${truncatedJob}
+IMPORTANT: Always start with the applicant's name and contact information at the top.
+
+TARGET ROLE:
+${analysis?.targetRole || "Not specified"}
+
+JOB DESCRIPTION:
+${truncatedJob}
+
+KEY SKILLS TO INCORPORATE NATURALLY:
+${missingKeywords.join(', ')}
+
+RULES:
+- ALWAYS include name and contact info at the very top
+- Contact info (phone and email) must be directly below the name
+- Use ATS-standard headers only
+- No tables, no icons, no graphics
+- Use achievement-based bullets where possible
+- Include metrics where realistic
+- Do NOT keyword-stuff
+- Keep language professional and concise
+
+REQUIRED FORMAT:
+[FULL NAME]
+[Phone Number] | [Email Address] | [Location]
+
+PROFESSIONAL SUMMARY
+[Summary content]
+
+WORK EXPERIENCE
+[Experience content]
+
+EDUCATION
+[Education content]
+
+TECHNICAL SKILLS
+[Skills content]
 
 ORIGINAL CV:
 ${truncatedCV}
 
-CRITICAL IMPROVEMENTS NEEDED:
-1. Add these exact keywords: ${missingKeywords.join(', ')}
-2. Replace ALL "responsible for" with "Led", "Built", "Delivered", "Achieved"
-3. Add specific metrics to EVERY bullet (percentages, numbers, timeframes)
-4. Start with strong professional summary containing target role keywords
-5. Use ATS-friendly section headers: PROFESSIONAL SUMMARY, WORK EXPERIENCE, EDUCATION, TECHNICAL SKILLS
-6. Include complete contact info in header
-7. Structure bullets as: [Action Verb] + [What] + [Result with metric]
-8. Add relevant technical skills from job requirements
-
-Example bullet format:
-• Led team of 5 developers, delivering 3 projects 20% ahead of schedule
-• Built responsive web application serving 10,000+ users with 99.9% uptime
-• Reduced API response time by 40% through database optimization
-
-Return the optimized CV that will score 85%+ on analysis:`;
+Return ONLY the rewritten CV text with name on first line and contact info on second line.`;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 2000,
-        temperature: 0.1
+        max_tokens: 2200,
+        temperature: 0.3
       });
 
-      return response.choices[0].message.content.trim();
+      const output = response.choices[0].message.content.trim();
+      
+      if (!output.includes("WORK EXPERIENCE") && !output.includes("EXPERIENCE")) {
+        throw new Error("Invalid CV rewrite output - missing required sections");
+      }
+
+      return output;
     } catch (error) {
       console.error('CV rewrite error:', error);
       throw new Error('Failed to rewrite CV');
@@ -59,7 +95,7 @@ ${sectionText}
 
 Job requirements: ${jobDescription.substring(0, 300)}...
 
-Make bullets achievement-focused with metrics and strong verbs.`,
+Rewrite task-based bullets into achievement-oriented bullets where possible.`,
         
         skills: `Optimize this skills section for ATS and relevance:
 ${sectionText}
@@ -77,16 +113,16 @@ Make it compelling for both ATS and recruiters.`
       };
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompts[sectionType] || prompts.experience }],
         max_tokens: 500,
-        temperature: 0.7
+        temperature: 0.3
       });
 
       return response.choices[0].message.content.trim();
     } catch (error) {
       console.error('Section rewrite error:', error);
-      return sectionText; // Return original if rewrite fails
+      return sectionText;
     }
   }
 
@@ -157,12 +193,19 @@ Make it compelling for both ATS and recruiters.`
     }
   }
 
+  convertToMarkdown(cvText) {
+    return cvText
+      .replace(/^([A-Z\s]+)$/gm, '# $1')  // Section headers
+      .replace(/^•\s/gm, '- ')            // Bullet points
+      .replace(/^([A-Za-z][^\n]*\|[^\n]*)$/gm, '**$1**'); // Job titles with pipes
+  }
+
   async applyUserImprovements(originalCV, improvements, jobDescription) {
     try {
-      const prompt = `Improve this CV by applying the user's specific improvements and ensure it scores higher:
+      const prompt = `Improve this CV by applying the user's specific improvements:
 
 ORIGINAL CV:
-${originalCV.substring(0, 2000)}
+${this.safeTruncateCV(originalCV)}
 
 USER IMPROVEMENTS:
 ${Object.entries(improvements).map(([key, value]) => `${key}: ${value}`).join('\n')}
@@ -170,26 +213,32 @@ ${Object.entries(improvements).map(([key, value]) => `${key}: ${value}`).join('\
 JOB REQUIREMENTS:
 ${jobDescription.substring(0, 500)}
 
-Apply improvements to MAXIMIZE ATS and recruiter scores:
-1. Add ALL missing keywords naturally throughout the CV
-2. Replace weak bullets with quantified achievements
+Naturally incorporate the following skills where they logically apply:
+1. Add missing keywords naturally throughout the CV
+2. Rewrite task-based bullets into achievement-oriented bullets where possible
 3. Use strong action verbs (Led, Built, Delivered, Achieved)
-4. Include specific metrics and percentages
+4. Include specific metrics where realistic
 5. Optimize section headers for ATS parsing
 6. Ensure contact info is complete and properly formatted
 7. Add relevant technical skills
 8. Structure for F-pattern scanning (most important info first)
 
-Return the significantly improved CV that will score 80%+ on analysis:`;
+Return the improved CV:`;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 2000,
-        temperature: 0.2
+        temperature: 0.3
       });
 
-      return response.choices[0].message.content.trim();
+      const output = response.choices[0].message.content.trim();
+      
+      if (!output.includes("EXPERIENCE") && !output.includes("WORK EXPERIENCE")) {
+        throw new Error("Invalid improvement output - missing required sections");
+      }
+
+      return output;
     } catch (error) {
       console.error('Apply improvements error:', error);
       throw new Error('Failed to apply improvements');

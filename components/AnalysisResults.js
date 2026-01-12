@@ -176,8 +176,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                   </div>
                   <button
                     onClick={() => {
-                      // Prompt user to sign in and pay for premium
-                      alert('Sign in with Google and pay R130 to unlock premium analysis');
+                      alert('Sign in with Google to upgrade to Premium and unlock all features');
                     }}
                     className="bg-white text-blue-600 font-bold py-3 px-8 rounded-xl hover:bg-gray-100 transition-all duration-300 shadow-lg"
                   >
@@ -190,10 +189,10 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
             {/* Actions */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
               <h3 className="text-xl font-bold text-gray-900 mb-6">Next Steps</h3>
-              <div className="grid grid-cols-1 md:grid-1 gap-4">
+              <div className="grid grid-cols-1 md:grid-col gap-4">
                 <button
                   onClick={onReset}
-                  className="p-6 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all hover:scale-105"
+                  className="p-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all hover:scale-105"
                 >
                   <div className="text-2xl mb-2">📤</div>
                   Analyze Another CV

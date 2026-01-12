@@ -40,18 +40,6 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
   };
 
   const handleRewrite = async () => {
-    // Check if user is logged in
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-
-    // Check if user is premium
-    if (userTier !== 'premium') {
-      setShowUpgradePrompt(true);
-      return;
-    }
-
     setRewriting(true);
     try {
       const formData = new FormData();
@@ -289,18 +277,10 @@ UserTier(userData?.tier || 'free');
               <button
                 onClick={() => {
                   setShowUpgradePrompt(false);
-                  setShowAuthModal(true);
                 }}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Upgrade to Premium
-              </button>
-              
-              <button
-                onClick={() => setShowUpgradePrompt(false)}
                 className="w-full py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
               >
-                Maybe Later
+                Close
               </button>
             </div>
           </div>

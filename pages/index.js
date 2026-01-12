@@ -92,8 +92,7 @@ export default function Home() {
             console.log('⚠️ No session found');
           }
         } catch (err) {
-            console.error('Error handling OAuth callback:', err);
-          }
+          console.error('Error handling OAuth callback:', err);
         }
       }
     };

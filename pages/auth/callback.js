@@ -15,10 +15,15 @@ export default function AuthCallback() {
           return;
         }
 
-        // Supabase handles the OAuth callback
+        // Supabase automatically handles the session from the URL hash
+        // Just wait a moment for it to be processed
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
+          console.log('Auth successful:', session.user.email);
+          
           // Create user record in database
           const { error } = await supabase
             .from('users')
@@ -36,9 +41,14 @@ export default function AuthCallback() {
 
           if (error) {
             console.error('Error creating user:', error);
+          } else {
+            console.log('User record created/updated');
           }
 
           // Redirect to home
+          router.push('/');
+        } else {
+          console.log('No session found, redirecting to home');
           router.push('/');
         }
       } catch (error) {
@@ -52,7 +62,10 @@ export default function AuthCallback() {
 
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <p className="text-lg text-gray-600">Signing you in...</p>
+      <div className="text-center">
+        <p className="text-lg text-gray-600 mb-2">Signing you in...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import JobInput from '../components/JobInput';
 import CVUpload from '../components/CVUpload';
@@ -10,6 +10,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import TierSelection from '../components/TierSelection';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import { useAuth } from '@/context/AuthContext';
+import { getSupabase } from '@/lib/supabase';
 
 // Normalize API URL by removing trailing slashes
 const getApiUrl = () => {
@@ -29,6 +30,52 @@ export default function Home() {
   const [structuredCV, setStructuredCV] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const handleAuthCallback = async () => {
+      // Check if we're returning from OAuth (has hash with access_token)
+      if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+        const supabase = getSupabase();
+        if (supabase) {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (session?.user) {
+              console.log('OAuth successful:', session.user.email);
+              
+              // Create user record in database
+              await supabase
+                .from('users')
+                .upsert({
+                  id: session.user.id,
+                  email: session.user.email,
+                  name: session.user.user_metadata?.full_name,
+                  google_id: session.user.id,
+                  tier: 'premium',
+                  is_paid: false,
+                  created_at: new Date(),
+                }, {
+                  onConflict: 'id'
+                });
+
+              // Set premium tier and move to step 1
+              setUserTier('premium');
+              updateUserTier('premium');
+              setStep(1);
+              
+              // Clean up the URL hash
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+          } catch (err) {
+            console.error('Error handling OAuth callback:', err);
+          }
+        }
+      }
+    };
+
+    handleAuthCallback();
+  }, []);
 
   const handleTierSelect = (tier) => {
     if (tier === 'premium') {

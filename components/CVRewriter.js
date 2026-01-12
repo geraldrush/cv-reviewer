@@ -83,12 +83,12 @@ const identifyMissingFields = (cvText, analysis) => {
   return missing;
 };
 
-export default function CVRewriter({ analysis, jobData, originalCV, structuredCV, onBack }) {
+export default function CVRewriter({ analysis, jobData, originalCV, structuredCV, onBack, userTier = 'free' }) {
   const [rewriting, setRewriting] = useState(false);
   const [rewrittenCV, setRewrittenCV] = useState(null);
   const [improvements, setImprovements] = useState(null);
   const [user, setUser] = useState(null);
-  const [userTier, setUserTier] = useState('free');
+  const [currentUserTier, setCurrentUserTier] = useState(userTier || 'free');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -184,7 +184,70 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
           </p>
         </div>
 
-        {/* Current Analysis Summary */}
+        {/* Premium Feature Paywall */}
+        {currentUserTier !== 'premium' && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-8 mb-8 text-center">
+            <div className="text-5xl mb-4">⭐</div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">Premium Feature</h3>
+            <p className="text-gray-600 mb-6">CV Rewriting is a premium feature. Upgrade to unlock AI-powered rewriting with:</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-left max-w-md mx-auto">
+              <div className="flex items-start">
+                <span className="text-2xl mr-3">✓</span>
+                <div>
+                  <p className="font-semibold text-gray-900">AI Rewrite</p>
+                  <p className="text-sm text-gray-600">Auto-optimize your CV</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <span className="text-2xl mr-3">✓</span>
+                <div>
+                  <p className="font-semibold text-gray-900">ATS Metrics</p>
+                  <p className="text-sm text-gray-600">Full scoring breakdown</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <span className="text-2xl mr-3">✓</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Full Analysis</p>
+                  <p className="text-sm text-gray-600">6+ detailed metrics</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <span className="text-2xl mr-3">✓</span>
+                <div>
+                  <p className="font-semibold text-gray-900">PDF Download</p>
+                  <p className="text-sm text-gray-600">ATS-optimized format</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-4 mb-6 inline-block">
+              <p className="text-3xl font-bold text-blue-600">R130</p>
+              <p className="text-sm text-gray-600">One-time payment</p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => {
+                  // Redirect to premium tier selection
+                  window.location.href = '/?upgrade=true';
+                }}
+                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg"
+              >
+                Upgrade to Premium - R130
+              </button>
+              <button
+                onClick={onBack}
+                className="px-8 py-3 border-2 border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition-all duration-300"
+              >
+                Back to Analysis
+              </button>
+            </div>
+          </div>
+        )}
+
+        {currentUserTier === 'premium' && (
         <div className="bg-gray-50 rounded-lg p-6 mb-8">
           <h3 className="font-semibold text-gray-900 mb-4">Current CV Analysis</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -365,8 +428,9 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
                 </button>
               </div>
             )}
+        )}
 
-            {/* Action Buttons */}
+        {/* Back Button */}
             <div className="flex justify-center space-x-4">
               <button
                 onClick={() => {

@@ -507,6 +507,7 @@ export default function Home() {
                   jobData={jobData}
                   originalCV={originalCV}
                   structuredCV={structuredCV}
+                  userTier={userTier}
                   onBack={() => setStep(3)}
                 />
               )}

@@ -10,7 +10,7 @@ export default function CVImprovement({ analysis, jobData, originalCV, onComplet
 
   const handleDownloadCV = async (format) => {
     try {
-      onst response = await fetch(`${baseURL}/api/download-cv`, {
+      const response = await fetch(`${baseURL}/api/download-cv`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ cvText, format })

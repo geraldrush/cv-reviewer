@@ -166,38 +166,12 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
         {/* Rewrite Section */}
         {!rewrittenCV ? (
           <div className="text-center">
-            {!user || !user.isPaid ? (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-6">
-                <h3 className="font-semibold text-orange-900 mb-3">🔒 Premium Feature</h3>
-                <p className="text-orange-800 mb-4">
-                  {!user ? 'Please sign in and upgrade to access CV rewriting.' : 'CV rewriting requires premium access.'}
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-orange-700 mb-4">
-                  <div className="space-y-2">
-                    <div>✓ AI-powered bullet improvements</div>
-                    <div>✓ Smart keyword integration</div>
-                    <div>✓ ATS optimization</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div>✓ Recruiter-friendly formatting</div>
-                    <div>✓ Industry-specific language</div>
-                    <div>✓ Performance metrics enhancement</div>
-                  </div>
-                </div>
-                <button
-                  onClick={handleRewrite}
-                  className="px-8 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
-                >
-                  {!user ? 'Sign In & Upgrade - R99' : 'Upgrade to Premium - R99'}
-                </button>
-              </div>
-            ) : (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-                <h3 className="font-semibold text-blue-900 mb-3">What we'll improve:</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
-                  <div className="space-y-2">
-                    <div>✓ Add missing mandatory keywords naturally</div>
-                    <div>✓ Rewrite weak bullets with metrics</div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+              <h3 className="font-semibold text-blue-900 mb-3">What we'll improve:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+                <div className="space-y-2">
+                  <div>✓ Add missing mandatory keywords naturally</div>
+                  <div>✓ Rewrite weak bullets with metrics</div>
                     <div>✓ Strengthen action verbs</div>
                   </div>
                   <div className="space-y-2">
@@ -209,19 +183,17 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
               </div>
             )}
 
-            {user && user.isPaid && (
-              <button
-                onClick={handleRewrite}
-                disabled={rewriting}
-                className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${
-                  rewriting
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500'
-                }`}
-              >
-                {rewriting ? 'Rewriting CV...' : 'Generate Improved CV'}
-              </button>
-            )}
+            <button
+              onClick={handleRewrite}
+              disabled={rewriting}
+              className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${
+                rewriting
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500'
+              }`}
+            >
+              {rewriting ? 'Rewriting CV...' : 'Generate Improved CV'}
+            </button>
           </div>
         ) : (
           <div className="space-y-8">

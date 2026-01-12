@@ -242,18 +242,13 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
       </div>
 
       {/* Auth Modal */}
+      {/* Auth Modal */}
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onSuccess={(userData) => {
           setUser(userData);
-          setShowAuthModal(false);
-          if (!userData.isPaid) {
-            setShowPaymentModal(true);
-          }
-        }}
-      />
-UserTier(userData?.tier || 'free');
+          setUserTier(userData?.tier || 'free');
           setShowAuthModal(false);
         }}
       />

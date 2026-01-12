@@ -285,7 +285,7 @@ app.post('/api/rewrite-cv', upload.single('cv'), async (req, res) => {
         
         if (cvAnalyzer.intelligenceLayer && analysis.intelligenceAnalysis?.bullets?.bulletAnalysis) {
           console.log('💡 Generating improvements...');
-          improvements = await cvAnalyzer.intelligenceLayer.generateBulletRecommendations(analysis.intelligenceAnalysis.bullets);
+          improvements = await cvAnalyzer.intelligenceLayer.generateBulletRecommendations(analysis.intelligenceAnalysis.bullets.bulletAnalysis);
         }
       } else {
         console.warn('⚠️ CVAnalyzer or methods not fully available, returning original CV');

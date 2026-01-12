@@ -6,14 +6,15 @@ export default function CVImprovement({ analysis, jobData, originalCV, onComplet
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [improvedCV, setImprovedCV] = useState('');
-  const baseURL = process.env.NEXT_PUBLIC_API_URL || '';
+  
 
   const handleDownloadCV = async (format) => {
     try {
+      const baseURL = process.env.NEXT_PUBLIC_API_URL || '';
       const response = await fetch(`${baseURL}/api/download-cv`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ cvText, format })
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cvText, format })
       });
       
       if (response.ok) {

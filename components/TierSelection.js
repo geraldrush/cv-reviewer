@@ -342,3 +342,4 @@ export default function TierSelection({ onSelectTier, onBack }) {
       </div>
     </div>
   );
+}

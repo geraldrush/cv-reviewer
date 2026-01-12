@@ -150,7 +150,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
             {/* Premium Upgrade CTA */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white mb-8 shadow-xl">
               <div className="flex items-start gap-6">
-                <div className="text-4xl">⭐</div>
+                <div className="text-2xl">⭐</div>
                 <div className="flex-1">
                   <h3 className="text-2xl font-bold mb-2">Want More Insights?</h3>
                   <p className="text-blue-100 mb-6 leading-relaxed">

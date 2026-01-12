@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import AuthModal from './AuthModal';
-import PaymentModal from './PaymentModal';
 
 // Normalize API URL by removing trailing slashes
 const getApiUrl = () => {
@@ -13,8 +12,9 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
   const [rewrittenCV, setRewrittenCV] = useState(null);
   const [improvements, setImprovements] = useState(null);
   const [user, setUser] = useState(null);
+  const [userTier, setUserTier] = useState('free');
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,25 +30,25 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        setUserTier(data.user?.tier || 'free');
       }
     } catch (error) {
       console.error('Auth check failed:', error);
-      // Silently fail - user will see auth modal when trying to rewrite
     } finally {
       setLoading(false);
     }
   };
 
   const handleRewrite = async () => {
-    // Check authentication first
+    // Check if user is logged in
     if (!user) {
       setShowAuthModal(true);
       return;
     }
 
-    // Check payment status
-    if (!user.isPaid) {
-      setShowPaymentModal(true);
+    // Check if user is premium
+    if (userTier !== 'premium') {
+      setShowUpgradePrompt(true);
       return;
     }
 
@@ -56,7 +56,6 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
     try {
       const formData = new FormData();
       
-      // Create a blob from the original CV text
       const cvBlob = new Blob([originalCV], { type: 'text/plain' });
       formData.append('cv', cvBlob, 'original_cv.txt');
       formData.append('jobDescription', jobData.description);
@@ -74,10 +73,6 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
       if (!result.success) {
         if (result.requiresAuth) {
           setShowAuthModal(true);
-          return;
-        }
-        if (result.requiresPayment) {
-          setShowPaymentModal(true);
           return;
         }
         throw new Error(result.message || 'Rewrite failed');
@@ -177,16 +172,15 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
                   <div className="space-y-2">
                     <div>✓ Optimize for ATS parsing</div>
                     <div>✓ Improve recruiter scanning</div>
-                    <div>✓ Enhance first impression</div>
-                  </div>
+                  <div>✓ Strengthen action verbs</div>
+                </div>
+                <div className="space-y-2">
+                  <div>✓ Optimize for ATS parsing</div>
+                  <div>✓ Improve recruiter scanning</div>
+                  <div>✓ Enhance first impression</div>
                 </div>
               </div>
-            )}
-
-            <button
-              onClick={handleRewrite}
-              disabled={rewriting}
-              className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${
+            </div>className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${
                 rewriting
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500'
@@ -266,19 +260,52 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
           }
         }}
       />
-
-      {/* Payment Modal */}
-      <PaymentModal
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        user={user}
+UserTier(userData?.tier || 'free');
+          setShowAuthModal(false);
+        }}
       />
 
-      {/* Loading overlay */}
-      {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
-          <div className="bg-white rounded-lg p-6">
-            <div className="text-center">
+      {/* Upgrade Prompt Modal */}
+      {showUpgradePrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-4">⭐</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Premium Feature</h2>
+              <p className="text-gray-600">CV Rewriting is only available for Premium members</p>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-blue-800 font-semibold mb-2">Premium includes:</p>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>✓ AI-Powered CV Rewriting</li>
+                <li>✓ ATS Compatibility Score</li>
+                <li>✓ Recruiter Appeal Analysis</li>
+                <li>✓ Detailed Keyword Matching</li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setShowUpgradePrompt(false);
+                  setShowAuthModal(true);
+                }}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Upgrade to Premium
+              </button>
+              
+              <button
+                onClick={() => setShowUpgradePrompt(false)}
+                className="w-full py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Maybe Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}    <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-4"></div>
               <p className="text-gray-600">Checking authentication...</p>
             </div>

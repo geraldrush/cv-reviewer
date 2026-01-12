@@ -12,6 +12,52 @@ import GoogleSignInButton from '../components/GoogleSignInButton';
 import { useAuth } from '@/context/AuthContext';
 import { getSupabase } from '@/lib/supabase';
 
+// User Menu Component
+function UserMenu({ user, userTier, onSignOut }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (!user) return null;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+      >
+        <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+          {user.email?.charAt(0).toUpperCase()}
+        </div>
+        <span className="text-sm font-medium text-gray-700 hidden sm:inline">{user.email?.split('@')[0]}</span>
+        <svg className={`w-4 h-4 text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <p className="text-sm font-semibold text-gray-900">{user.email}</p>
+            <p className="text-xs text-gray-600 mt-1">
+              <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">
+                {userTier === 'premium' ? '⭐ Premium' : '🚀 Free'}
+              </span>
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              onSignOut();
+              setIsOpen(false);
+            }}
+            className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Normalize API URL by removing trailing slashes
 const getApiUrl = () => {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
@@ -19,7 +65,7 @@ const getApiUrl = () => {
 };
 
 export default function Home() {
-  const { user, userTier: authUserTier, updateUserTier, loading: authLoading } = useAuth();
+  const { user, userTier: authUserTier, updateUserTier, signOut, loading: authLoading } = useAuth();
   const [step, setStep] = useState(0); // 0: Tier Selection, 1: Job Input, 2: CV Upload, 3: Results
   const [userTier, setUserTier] = useState(null); // 'free' or 'premium'
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -30,6 +76,11 @@ export default function Home() {
   const [structuredCV, setStructuredCV] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const handleSignOut = async () => {
+    await signOut();
+    resetAnalysis();
+  };
 
   // If user is already logged in, skip tier selection
   useEffect(() => {
@@ -251,7 +302,12 @@ export default function Home() {
         <title>CV Reviewer - Best-in-Class CV Analysis</title>
         <meta name="description" content="Get your CV reviewed by AI that thinks like both ATS systems and human recruiters" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
+        <link Top Navigation */}
+          <div className="flex justify-end mb-6">
+            <UserMenu user={user} userTier={userTier || authUserTier} onSignOut={handleSignOut} />
+          </div>
+
+          {/* rel="icon" href="/favicon.ico" />
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50">

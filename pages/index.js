@@ -8,6 +8,8 @@ import CVBuilder from '../components/CVBuilder';
 import CVImprovement from '../components/CVImprovement';
 import LoadingSpinner from '../components/LoadingSpinner';
 import TierSelection from '../components/TierSelection';
+import GoogleSignInButton from '../components/GoogleSignInButton';
+import { useAuth } from '@/context/AuthContext';
 
 // Normalize API URL by removing trailing slashes
 const getApiUrl = () => {
@@ -16,6 +18,7 @@ const getApiUrl = () => {
 };
 
 export default function Home() {
+  const { user, userTier: authUserTier, updateUserTier, loading: authLoading } = useAuth();
   const [step, setStep] = useState(0); // 0: Tier Selection, 1: Job Input, 2: CV Upload, 3: Results
   const [userTier, setUserTier] = useState(null); // 'free' or 'premium'
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -28,8 +31,25 @@ export default function Home() {
   const [error, setError] = useState(null);
 
   const handleTierSelect = (tier) => {
-    setUserTier(tier);
-    setStep(1); // Go to job input after tier selection
+    if (tier === 'premium') {
+      // Show Google Sign In for premium
+      setStep(99); // Premium sign in step
+    } else {
+      // Free tier - go straight to analysis
+      setUserTier(tier);
+      setStep(1);
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    // This will trigger Google OAuth in AuthModal
+    // For now, show a placeholder
+    alert('Google Sign In will open. After successful login, you\'ll be prompted to pay R130 via PayFast.');
+    // TODO: Integrate with actual Google OAuth flow
+    // For testing, you can manually set:
+    // setUser({ name: 'Test User', email: 'test@example.com' });
+    // setUserTier('premium');
+    // setStep(8); // Go to payment flow
   };
 
 
@@ -264,6 +284,35 @@ export default function Home() {
                   onSelectTier={handleTierSelect}
                   onBack={null}
                 />
+              )}
+
+              {step === 99 && (
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-50 to-orange-50 px-4">
+                  <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl border border-blue-200 p-8 sm:p-10">
+                    <div className="text-center mb-8">
+                      <div className="text-5xl mb-4">⭐</div>
+                      <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Premium Access</h2>
+                      <p className="text-gray-600">Sign in with Google to continue with Premium</p>
+                    </div>
+                    <GoogleSignInButton 
+                      onSuccess={() => {
+                        setUserTier('premium');
+                        updateUserTier('premium');
+                        setStep(1);
+                      }}
+                    />
+                    <button
+                      onClick={() => {
+                        setUserTier('free');
+                        updateUserTier('free');
+                        setStep(1);
+                      }}
+                      className="w-full mt-4 px-6 py-3 text-gray-700 bg-gray-100 rounded-lg font-semibold hover:bg-gray-200 transition"
+                    >
+                      Continue as Free User
+                    </button>
+                  </div>
+                </div>
               )}
 
               {step === 1 && userTier && (

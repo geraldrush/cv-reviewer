@@ -260,20 +260,11 @@ app.post('/api/analyze-cv', upload.single('cv'), async (req, res) => {
 
 app.post('/api/rewrite-cv', upload.single('cv'), async (req, res) => {
   try {
-    if (!req.session.userId) return res.status(401).json({ error: 'Authentication required', requiresAuth: true });
-    
     const { jobDescription, targetRole, companyName } = req.body;
     if (!req.file || !jobDescription) return res.status(400).json({ error: 'CV file and job description required' });
 
     const cvText = await extractCvText(req.file);
     if (!cvText || cvText.length < 50) return res.status(400).json({ error: 'CV text extraction failed' });
-
-    const user = authService.getUser(req.session.userId);
-    const tier = userTierService.getUserTier(user?.tier);
-
-    if (!userTierService.canUseAI(tier)) {
-      return res.status(402).json({ error: 'Premium required', requiresPayment: true });
-    }
 
     const analysis = await cvAnalyzer.analyzeCV(cvText, jobDescription, targetRole || 'Professional');
     const rewritten = await cvAnalyzer.cvRewriter.rewriteEntireCV(cvText, jobDescription, analysis);

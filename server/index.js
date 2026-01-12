@@ -288,7 +288,11 @@ app.post('/api/rewrite-cv', upload.single('cv'), async (req, res) => {
   } catch (error) {
     console.error('❌ Rewrite error:', error.message);
     console.error('Stack:', error.stack);
-    res.status(500).json({ error: 'Rewrite failed', message: error.message });
+    res.status(500).json({ 
+      error: 'Rewrite failed', 
+      message: error.message,
+      details: error.toString()
+    });
   }
 });
 

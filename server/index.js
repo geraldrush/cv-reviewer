@@ -442,6 +442,35 @@ app.use((error, req, res, next) => {
 });
 
 /* =========================
+   PAYFAST PAYMENT
+========================= */
+
+app.post('/api/payfast/init-payment', async (req, res) => {
+  try {
+    const { amount, tier, userId, userEmail, userName } = req.body;
+
+    if (!amount || !userId || !userEmail) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Generate PayFast payment data
+    const paymentData = payFastService.generatePaymentData(userId, userEmail, amount);
+    
+    // Build redirect URL
+    const redirectUrl = `${payFastService.baseUrl}/eng/process?` + new URLSearchParams(paymentData).toString();
+
+    res.json({ 
+      success: true, 
+      redirectUrl: redirectUrl,
+      paymentData: paymentData 
+    });
+  } catch (error) {
+    console.error('PayFast init error:', error);
+    res.status(500).json({ error: 'Payment initialization failed', message: error.message });
+  }
+});
+
+/* =========================
    EXPORT (NO listen!)
 ========================= */
 

@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import GoogleSignInButton from './GoogleSignInButton';
 
 export default function TierSelection({ onSelectTier, onBack }) {
   const [selectedTier, setSelectedTier] = useState(null);
+  const [showPremiumFlow, setShowPremiumFlow] = useState(false);
 
   const tiers = {
     free: {
@@ -31,7 +33,8 @@ export default function TierSelection({ onSelectTier, onBack }) {
     },
     premium: {
       name: 'Premium Tier',
-      price: 'One-time',
+      price: 'R130',
+      currency: 'ZAR',
       description: 'Complete professional CV review',
       color: 'blue',
       icon: '⭐',
@@ -55,7 +58,15 @@ export default function TierSelection({ onSelectTier, onBack }) {
     },
   };
 
+  const handlePremiumClick = () => {
+    setShowPremiumFlow(true);
+  };
+
   const handleTierSelect = (tier) => {
+    if (tier === 'premium') {
+      handlePremiumClick();
+      return;
+    }
     setSelectedTier(tier);
     onSelectTier(tier);
   };
@@ -116,7 +127,7 @@ export default function TierSelection({ onSelectTier, onBack }) {
                   <div className="flex items-baseline gap-1 mb-4">
                     <span className="text-4xl font-bold text-gray-900">{tier.price}</span>
                     {tierKey === 'premium' && (
-                      <span className="text-gray-600 text-sm">payment</span>
+                      <span className="text-gray-600 text-sm">one-time payment</span>
                     )}
                   </div>
                 </div>
@@ -283,7 +294,51 @@ export default function TierSelection({ onSelectTier, onBack }) {
             </button>
           </div>
         )}
+
+        {/* Premium Sign-Up & Payment Modal */}
+        {showPremiumFlow && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+              <div className="text-center mb-8">
+                <div className="text-5xl mb-4">⭐</div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Premium Access</h2>
+                <p className="text-gray-600 mb-6">Unlock complete CV analysis for just R130</p>
+                
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8 border border-blue-200">
+                  <div className="text-4xl font-bold text-blue-600 mb-2">R130</div>
+                  <p className="text-sm text-gray-600 mb-4">One-time payment</p>
+                  <ul className="text-sm text-left space-y-2 text-gray-700">
+                    <li>✓ ATS & Recruiter Scores</li>
+                    <li>✓ Keyword Analysis</li>
+                    <li>✓ AI CV Rewrite</li>
+                    <li>✓ PDF Download</li>
+                  </ul>
+                </div>
+
+                <p className="text-sm text-gray-600 mb-6">Sign in to continue to payment:</p>
+
+                <GoogleSignInButton 
+                  onSuccess={(user) => {
+                    // User signed in, now redirect to payment
+                    window.location.href = '/payment/checkout?tier=premium&amount=130&user=' + encodeURIComponent(JSON.stringify({
+                      id: user.id,
+                      email: user.email,
+                      name: user.user_metadata?.full_name || user.email
+                    }));
+                  }}
+                  label="Sign In with Google"
+                />
+
+                <button
+                  onClick={() => setShowPremiumFlow(false)}
+                  className="mt-4 w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
-}

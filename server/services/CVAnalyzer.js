@@ -85,7 +85,21 @@ class CVAnalyzer {
     const intelligenceScore = analysis.intelligenceAnalysis.bullets?.overallScore || 0;
     const formatScore = analysis.formatScore || 0;
 
-    const weightedScore = (atsScore * 0.35) + (recruiterScore * 0.35) + (intelligenceScore * 0.20) + (formatScore * 0.10);
+    let weightedScore = (atsScore * 0.35) + (recruiterScore * 0.35) + (intelligenceScore * 0.20) + (formatScore * 0.10);
+
+    // Apply penalties for missing keywords
+    const missingKeywords = analysis.atsAnalysis.keywordMatch?.mandatory?.missing || [];
+    const keywordPenalty = Math.min(missingKeywords.length * 2, 15); // Max 15% penalty
+    
+    // Apply penalties for weak bullets
+    const weakBullets = analysis.intelligenceAnalysis.bullets?.bulletAnalysis?.filter(b => b.score < 60) || [];
+    const bulletPenalty = Math.min(weakBullets.length * 3, 20); // Max 20% penalty
+
+    weightedScore = weightedScore - keywordPenalty - bulletPenalty;
+    
+    // Ensure score stays between 0 and 100
+    weightedScore = Math.max(0, Math.min(100, weightedScore));
+    
     return parseFloat(weightedScore.toFixed(1));
   }
 

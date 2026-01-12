@@ -67,6 +67,7 @@ ${truncatedCV}
 
 Return ONLY the rewritten CV text with name on first line and contact info on second line.`;
 
+      console.log('🔗 Calling OpenAI API for CV rewrite...');
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
@@ -74,6 +75,7 @@ Return ONLY the rewritten CV text with name on first line and contact info on se
         temperature: 0.3
       });
 
+      console.log('✅ OpenAI response received');
       const output = response.choices[0].message.content.trim();
       
       if (!output.includes("WORK EXPERIENCE") && !output.includes("EXPERIENCE")) {
@@ -82,8 +84,10 @@ Return ONLY the rewritten CV text with name on first line and contact info on se
 
       return output;
     } catch (error) {
-      console.error('CV rewrite error:', error);
-      throw new Error('Failed to rewrite CV');
+      console.error('❌ CV rewrite error:', error.message || error);
+      console.error('Error details:', error);
+      const errorMsg = error.message || error.toString();
+      throw new Error(`Failed to rewrite CV: ${errorMsg}`);
     }
   }
 

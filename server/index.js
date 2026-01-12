@@ -265,35 +265,42 @@ app.post('/api/rewrite-cv', upload.single('cv'), async (req, res) => {
     const { jobDescription, targetRole, companyName } = req.body;
     if (!req.file || !jobDescription) return res.status(400).json({ error: 'CV file and job description required' });
 
-    if (!cvAnalyzer) {
-      console.error('❌ CVAnalyzer not initialized');
-      return res.status(503).json({ error: 'CV Analyzer service not available' });
-    }
-
     console.log('📄 Extracting CV text...');
     const cvText = await extractCvText(req.file);
     if (!cvText || cvText.length < 50) return res.status(400).json({ error: 'CV text extraction failed' });
 
-    console.log('🔍 Analyzing CV...');
-    const analysis = await cvAnalyzer.analyzeCV(cvText, jobDescription, targetRole || 'Professional');
-    
-    console.log('✏️ Rewriting CV...');
-    if (!cvAnalyzer.cvRewriter) {
-      console.error('❌ CV Rewriter not available');
-      // Provide fallback rewritten text
-      return res.json({ 
-        success: true, 
-        rewritten: cvText, 
-        improvements: { improvements: [] }
-      });
-    }
-    
-    const rewritten = await cvAnalyzer.cvRewriter.rewriteEntireCV(cvText, jobDescription, analysis);
-    
-    console.log('💡 Generating improvements...');
+    // Try to rewrite, but provide fallback
+    let rewritten = cvText;
     let improvements = { improvements: [] };
-    if (cvAnalyzer.intelligenceLayer && analysis.intelligenceAnalysis?.bullets?.bulletAnalysis) {
-      improvements = await cvAnalyzer.intelligenceLayer.generateBulletRecommendations(analysis.intelligenceAnalysis.bullets);
+
+    try {
+      if (cvAnalyzer && cvAnalyzer.analyzeCV) {
+        console.log('🔍 Analyzing CV...');
+        const analysis = await cvAnalyzer.analyzeCV(cvText, jobDescription, targetRole || 'Professional');
+        
+        if (cvAnalyzer.cvRewriter && cvAnalyzer.cvRewriter.rewriteEntireCV) {
+          console.log('✏️ Rewriting CV...');
+          rewritten = await cvAnalyzer.cvRewriter.rewriteEntireCV(cvText, jobDescription, analysis);
+        }
+        
+        if (cvAnalyzer.intelligenceLayer && analysis.intelligenceAnalysis?.bullets?.bulletAnalysis) {
+          console.log('💡 Generating improvements...');
+          improvements = await cvAnalyzer.intelligenceLayer.generateBulletRecommendations(analysis.intelligenceAnalysis.bullets);
+        }
+      } else {
+        console.warn('⚠️ CVAnalyzer or methods not fully available, returning original CV');
+      }
+    } catch (analyzeError) {
+      console.error('⚠️ Analysis error:', analyzeError.message);
+      console.error('⚠️ Full error:', analyzeError);
+      console.error('⚠️ Stack:', analyzeError.stack);
+      // Return the detailed error instead of swallowing it
+      return res.status(500).json({ 
+        error: 'Rewrite failed',
+        message: analyzeError.message,
+        details: analyzeError.toString(),
+        stack: analyzeError.stack
+      });
     }
 
     console.log('✅ Rewrite complete');

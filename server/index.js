@@ -345,8 +345,9 @@ app.post('/api/download-cv', async (req, res) => {
 
     let buffer;
     if (format === 'pdf') {
-      const pdfDoc = pdfGenerator.generateATSOptimizedPDF(cvText);
-      buffer = Buffer.from(pdfDoc.output('arraybuffer'));
+      const pdfResult = pdfGenerator.generateATSOptimizedPDF(cvText);
+      // pdfResult is already a Uint8Array or Buffer from the PDF generator
+      buffer = Buffer.isBuffer(pdfResult) ? pdfResult : Buffer.from(pdfResult);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename="cv.pdf"');
     } else if (format === 'txt') {

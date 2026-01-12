@@ -8,6 +8,12 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        if (!supabase) {
+          console.log('Supabase not configured');
+          router.push('/');
+          return;
+        }
+
         // Supabase handles the OAuth callback
         const { data: { session } } = await supabase.auth.getSession();
         

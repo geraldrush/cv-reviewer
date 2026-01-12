@@ -12,6 +12,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        if (!supabase) {
+          setLoading(false);
+          return;
+        }
+        
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
@@ -37,6 +42,10 @@ export function AuthProvider({ children }) {
 
   const signInWithGoogle = async () => {
     try {
+      if (!supabase) {
+        throw new Error('Supabase not configured. Please set environment variables.');
+      }
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -53,7 +62,9 @@ export function AuthProvider({ children }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
     setUser(null);
     setUserTier('free');
   };

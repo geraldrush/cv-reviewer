@@ -41,8 +41,10 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
 
       const result = await response.json();
 
-      if (!result.success) {
-        throw new Error(result.details || result.message || 'Rewrite failed');
+      if (!response.ok || !result.success) {
+        const errorMsg = result.details || result.message || 'Rewrite failed';
+        console.error('Server error response:', result);
+        throw new Error(errorMsg);
       }
 
       setRewrittenCV(result.rewritten);

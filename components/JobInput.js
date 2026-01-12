@@ -26,22 +26,20 @@ export default function JobInput({ onSubmit, onBack }) {
   const isValid = formData.description.trim().length >= 50;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6">
-      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
-        <div className="text-center mb-6 sm:mb-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-            Step 1: Tell us about the job
+    <div className="max-w-3xl mx-auto px-4 sm:px-6">
+      <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-6">
+        <div className="text-center mb-5 sm:mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-black mb-1">
+            Tell us about the job
           </h2>
-          <p className="text-gray-600 text-sm sm:text-base">
-            We'll analyze your CV specifically for this role
-          </p>
+          <p className="text-gray-600 text-sm">We'll analyze your CV for this role</p>
         </div>
 
-        <form id="job-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <form id="job-form" onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">
-                Company Name
+              <label htmlFor="company" className="block text-sm font-medium text-black mb-1">
+                Company
               </label>
               <input
                 type="text"
@@ -49,14 +47,14 @@ export default function JobInput({ onSubmit, onBack }) {
                 name="company"
                 value={formData.company}
                 onChange={handleChange}
-                placeholder="e.g., Google, Microsoft, Startup Inc."
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                placeholder="e.g., Google"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
               />
             </div>
 
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                Role Title
+              <label htmlFor="role" className="block text-sm font-medium text-black mb-1">
+                Job Title
               </label>
               <input
                 type="text"
@@ -64,14 +62,14 @@ export default function JobInput({ onSubmit, onBack }) {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                placeholder="e.g., Senior Frontend Engineer"
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                placeholder="e.g., Senior Engineer"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="description" className="block text-sm font-medium text-black mb-1">
               Job Description *
             </label>
             <textarea
@@ -154,11 +152,11 @@ export default function JobInput({ onSubmit, onBack }) {
         </div>
 
         {/* Navigation buttons at bottom */}
-        <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+        <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 sm:gap-0 items-center mt-6 pt-5 border-t border-gray-200">
           <button
             type="button"
             onClick={onBack}
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+            className="w-full sm:w-auto px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium text-sm"
           >
             ← Back
           </button>
@@ -167,9 +165,9 @@ export default function JobInput({ onSubmit, onBack }) {
             type="submit"
             form="job-form"
             disabled={!isValid}
-            className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${
+            className={`w-full sm:w-auto px-6 py-2.5 rounded-lg font-medium text-white transition-colors text-sm ${
               isValid
-                ? 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500'
+                ? 'bg-orange-600 hover:bg-orange-700 focus:ring-2 focus:ring-orange-500'
                 : 'bg-gray-400 cursor-not-allowed'
             }`}
           >

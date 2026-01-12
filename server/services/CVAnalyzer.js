@@ -3,6 +3,7 @@ const RecruiterSimulator = require('./RecruiterSimulator');
 const CVIntelligenceLayer = require('./CVIntelligenceLayer');
 const CVRewriter = require('./CVRewriter');
 const CVBuilder = require('./CVBuilder');
+const CVFormatAnalyzer = require('./CVFormatAnalyzer');
 
 class CVAnalyzer {
   constructor(openaiApiKey) {
@@ -11,6 +12,7 @@ class CVAnalyzer {
     this.intelligenceLayer = new CVIntelligenceLayer(openaiApiKey);
     this.cvRewriter = new CVRewriter(openaiApiKey);
     this.cvBuilder = new CVBuilder(openaiApiKey);
+    this.formatAnalyzer = new CVFormatAnalyzer();
   }
 
   async analyzeCV(cvText, jobDescription, targetRole = '') {
@@ -20,9 +22,11 @@ class CVAnalyzer {
       timestamp: new Date().toISOString(),
       overallScore: 0,
       matchPercentage: 0,
+      formatScore: 0,
       atsAnalysis: {},
       recruiterAnalysis: {},
       intelligenceAnalysis: {},
+      formatAnalysis: {},
       recommendations: [],
       criticalIssues: [],
       improvements: [],
@@ -30,14 +34,17 @@ class CVAnalyzer {
     };
 
     try {
-      // Run both brains in parallel
-      const [atsResult, recruiterResult] = await Promise.all([
+      // Run all analyses in parallel
+      const [atsResult, recruiterResult, formatResult] = await Promise.all([
         this.atsSimulator.analyzeCV(cvText, jobDescription),
-        this.recruiterSimulator.analyzeCV(cvText, jobDescription, targetRole)
+        this.recruiterSimulator.analyzeCV(cvText, jobDescription, targetRole),
+        Promise.resolve(this.formatAnalyzer.analyzeFormat(cvText))
       ]);
 
       analysis.atsAnalysis = atsResult;
       analysis.recruiterAnalysis = recruiterResult;
+      analysis.formatAnalysis = formatResult;
+      analysis.formatScore = formatResult.overallFormatScore;
 
       // Run intelligence layer analysis
       const [bulletAnalysis, antiPatterns, biasCheck] = await Promise.all([
@@ -72,13 +79,14 @@ class CVAnalyzer {
   }
 
   calculateOverallScore(analysis) {
-    // Weighted scoring: ATS (40%) + Recruiter (40%) + Intelligence (20%)
+    // Weighted scoring: ATS (35%) + Recruiter (35%) + Intelligence (20%) + Format (10%)
     const atsScore = analysis.atsAnalysis.rankingScore || 0;
     const recruiterScore = analysis.recruiterAnalysis.scanScore || 0;
     const intelligenceScore = analysis.intelligenceAnalysis.bullets?.overallScore || 0;
+    const formatScore = analysis.formatScore || 0;
 
-    const weightedScore = (atsScore * 0.4) + (recruiterScore * 0.4) + (intelligenceScore * 0.2);
-    return Math.round(weightedScore);
+    const weightedScore = (atsScore * 0.35) + (recruiterScore * 0.35) + (intelligenceScore * 0.20) + (formatScore * 0.10);
+    return parseFloat(weightedScore.toFixed(1));
   }
 
   calculateMatchPercentage(analysis) {
@@ -87,22 +95,35 @@ class CVAnalyzer {
     const niceToHaveMatch = analysis.atsAnalysis.keywordMatch?.niceToHave?.percentage || 0;
     
     // Weighted: 70% mandatory, 30% nice-to-have
-    return Math.round((mandatoryMatch * 0.7) + (niceToHaveMatch * 0.3));
+    return parseFloat(((mandatoryMatch * 0.7) + (niceToHaveMatch * 0.3)).toFixed(1));
   }
 
   consolidateRecommendations(analysis) {
     const allRecommendations = [
       ...(analysis.atsAnalysis.recommendations || []),
       ...(analysis.recruiterAnalysis.recommendations || []),
-      ...(analysis.intelligenceAnalysis.bullets?.recommendations || [])
+      ...(analysis.intelligenceAnalysis.bullets?.recommendations || []),
+      ...this.formatAnalyzer.getFormatRecommendations(analysis.formatAnalysis)
     ];
 
     // Sort by priority and deduplicate
     const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     
-    return allRecommendations
-      .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
+    let consolidated = allRecommendations
+      .sort((a, b) => (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3))
       .slice(0, 8); // Top 8 recommendations
+
+    // Ensure at least one recommendation unless score is 100%
+    if (consolidated.length === 0 && analysis.overallScore < 100) {
+      consolidated.push({
+        priority: 'medium',
+        title: 'Polish CV for optimal impact',
+        description: 'While your CV is strong, consider adding more quantifiable metrics to achievements and ensure all sections are properly formatted.',
+        category: 'general'
+      });
+    }
+
+    return consolidated;
   }
 
   identifyCriticalIssues(analysis) {

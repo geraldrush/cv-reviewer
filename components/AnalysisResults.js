@@ -16,20 +16,23 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
   };
 
   const getScoreColor = (score) => {
-    if (score >= 85) return 'text-emerald-600';
-    if (score >= 70) return 'text-amber-600';
+    if (score >= 85) return 'text-green-600';
+    if (score >= 70) return 'text-yellow-600';
+    if (score >= 50) return 'text-orange-600';
     return 'text-red-500';
   };
 
   const getScoreBg = (score) => {
-    if (score >= 85) return 'bg-emerald-50 border-emerald-200';
-    if (score >= 70) return 'bg-amber-50 border-amber-200';
+    if (score >= 85) return 'bg-green-50 border-green-200';
+    if (score >= 70) return 'bg-yellow-50 border-yellow-200';
+    if (score >= 50) return 'bg-orange-50 border-orange-200';
     return 'bg-red-50 border-red-200';
   };
 
   const getScoreGradient = (score) => {
-    if (score >= 85) return 'from-emerald-500 to-emerald-600';
-    if (score >= 70) return 'from-amber-500 to-amber-600';
+    if (score >= 85) return 'from-green-500 to-green-600';
+    if (score >= 70) return 'from-yellow-500 to-yellow-600';
+    if (score >= 50) return 'from-orange-500 to-orange-600';
     return 'from-red-500 to-red-600';
   };
 
@@ -43,18 +46,18 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Hero Score Section */}
-        <div className="relative overflow-hidden bg-white rounded-3xl shadow-2xl border border-gray-100 mb-8">
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-blue-500/5"></div>
+    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-orange-50">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Hero Score Section - Compact */}
+        <div className="relative overflow-hidden bg-white rounded-2xl shadow-lg border border-orange-200 mb-6">
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-black/5"></div>
           <div className="relative p-8 lg:p-12">
             <div className="text-center mb-8">
               <div className="flex flex-col lg:flex-row items-center justify-center gap-8">
                 <div className="relative">
                   <div className={`w-32 h-32 lg:w-40 lg:h-40 rounded-full bg-gradient-to-r ${getScoreGradient(analysis.overallScore)} flex items-center justify-center shadow-2xl`}>
                     <div className="text-4xl lg:text-6xl font-bold text-white">
-                      {analysis.overallScore}%
+                      {typeof analysis.overallScore === 'number' ? analysis.overallScore.toFixed(1) : analysis.overallScore}%
                     </div>
                   </div>
                   <div className="absolute -top-2 -right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg">
@@ -79,7 +82,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
             </div>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
@@ -88,7 +91,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                     </svg>
                   </div>
                   <div className="text-3xl font-bold text-blue-600">
-                    {analysis.atsAnalysis?.rankingScore || 0}%
+                    {typeof analysis.atsAnalysis?.rankingScore === 'number' ? analysis.atsAnalysis.rankingScore.toFixed(1) : analysis.atsAnalysis?.rankingScore || 0}%
                   </div>
                 </div>
                 <h3 className="font-semibold text-blue-900 mb-1">ATS Compatibility</h3>
@@ -103,7 +106,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                     </svg>
                   </div>
                   <div className="text-3xl font-bold text-emerald-600">
-                    {analysis.recruiterAnalysis?.scanScore || 0}%
+                    {typeof analysis.recruiterAnalysis?.scanScore === 'number' ? analysis.recruiterAnalysis.scanScore.toFixed(1) : analysis.recruiterAnalysis?.scanScore || 0}%
                   </div>
                 </div>
                 <h3 className="font-semibold text-emerald-900 mb-1">Recruiter Appeal</h3>
@@ -118,11 +121,26 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                     </svg>
                   </div>
                   <div className="text-3xl font-bold text-purple-600">
-                    {analysis.matchPercentage || 0}%
+                    {typeof analysis.matchPercentage === 'number' ? analysis.matchPercentage.toFixed(1) : analysis.matchPercentage || 0}%
                   </div>
                 </div>
                 <h3 className="font-semibold text-purple-900 mb-1">Keyword Match</h3>
                 <p className="text-sm text-purple-700">Job description alignment</p>
+              </div>
+
+              <div className={`bg-gradient-to-br ${analysis.formatScore >= 85 ? 'from-green-50 to-green-100' : analysis.formatScore >= 70 ? 'from-yellow-50 to-yellow-100' : 'from-orange-50 to-orange-100'} rounded-2xl p-6 border ${analysis.formatScore >= 85 ? 'border-green-200' : analysis.formatScore >= 70 ? 'border-yellow-200' : 'border-orange-200'}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`w-12 h-12 ${analysis.formatScore >= 85 ? 'bg-green-500' : analysis.formatScore >= 70 ? 'bg-yellow-500' : 'bg-orange-500'} rounded-xl flex items-center justify-center`}>
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className={`text-3xl font-bold ${analysis.formatScore >= 85 ? 'text-green-600' : analysis.formatScore >= 70 ? 'text-yellow-600' : 'text-orange-600'}`}>
+                    {typeof analysis.formatScore === 'number' ? analysis.formatScore.toFixed(1) : analysis.formatScore || 0}%
+                  </div>
+                </div>
+                <h3 className={`font-semibold ${analysis.formatScore >= 85 ? 'text-green-900' : analysis.formatScore >= 70 ? 'text-yellow-900' : 'text-orange-900'} mb-1`}>CV Format</h3>
+                <p className={`text-sm ${analysis.formatScore >= 85 ? 'text-green-700' : analysis.formatScore >= 70 ? 'text-yellow-700' : 'text-orange-700'}`}>Structure & presentation</p>
               </div>
             </div>
           </div>
@@ -297,7 +315,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                   <div className="bg-blue-50 rounded-lg p-6">
                     <h4 className="font-semibold text-blue-900 mb-2">Parsing Score</h4>
                     <div className="text-3xl font-bold text-blue-600">
-                      {analysis.atsAnalysis?.parsingScore?.score || 0}%
+                      {typeof analysis.atsAnalysis?.parsingScore?.score === 'number' ? analysis.atsAnalysis.parsingScore.score.toFixed(1) : analysis.atsAnalysis?.parsingScore?.score || 0}%
                     </div>
                     <p className="text-sm text-blue-700 mt-2">
                       How well ATS systems can read your CV
@@ -307,7 +325,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                   <div className="bg-purple-50 rounded-lg p-6">
                     <h4 className="font-semibold text-purple-900 mb-2">Ranking Score</h4>
                     <div className="text-3xl font-bold text-purple-600">
-                      {analysis.atsAnalysis?.rankingScore || 0}%
+                      {typeof analysis.atsAnalysis?.rankingScore === 'number' ? analysis.atsAnalysis.rankingScore.toFixed(1) : analysis.atsAnalysis?.rankingScore || 0}%
                     </div>
                     <p className="text-sm text-purple-700 mt-2">
                       Your ranking against other candidates
@@ -322,7 +340,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                       <h5 className="font-medium text-gray-800 mb-2">Mandatory Keywords</h5>
                       <div className="flex items-center mb-2">
                         <div className="text-2xl font-bold text-red-600">
-                          {analysis.atsAnalysis?.keywordMatch?.mandatory?.percentage?.toFixed(0) || 0}%
+                          {typeof analysis.atsAnalysis?.keywordMatch?.mandatory?.percentage === 'number' ? analysis.atsAnalysis.keywordMatch.mandatory.percentage.toFixed(1) : analysis.atsAnalysis?.keywordMatch?.mandatory?.percentage || 0}%
                         </div>
                         <div className="ml-2 text-sm text-gray-600">
                           ({analysis.atsAnalysis?.keywordMatch?.mandatory?.matched || 0} of {analysis.atsAnalysis?.keywordMatch?.mandatory?.total || 0})
@@ -346,7 +364,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                       <h5 className="font-medium text-gray-800 mb-2">Nice-to-Have Keywords</h5>
                       <div className="flex items-center mb-2">
                         <div className="text-2xl font-bold text-blue-600">
-                          {analysis.atsAnalysis?.keywordMatch?.niceToHave?.percentage?.toFixed(0) || 0}%
+                          {typeof analysis.atsAnalysis?.keywordMatch?.niceToHave?.percentage === 'number' ? analysis.atsAnalysis.keywordMatch.niceToHave.percentage.toFixed(1) : analysis.atsAnalysis?.keywordMatch?.niceToHave?.percentage || 0}%
                         </div>
                         <div className="ml-2 text-sm text-gray-600">
                           ({analysis.atsAnalysis?.keywordMatch?.niceToHave?.matched || 0} of {analysis.atsAnalysis?.keywordMatch?.niceToHave?.total || 0})
@@ -369,7 +387,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                   <div className="bg-green-50 rounded-lg p-6">
                     <h4 className="font-semibold text-green-900 mb-2">Scan Score</h4>
                     <div className="text-3xl font-bold text-green-600">
-                      {analysis.recruiterAnalysis?.scanScore || 0}%
+                      {typeof analysis.recruiterAnalysis?.scanScore === 'number' ? analysis.recruiterAnalysis.scanScore.toFixed(1) : analysis.recruiterAnalysis?.scanScore || 0}%
                     </div>
                     <p className="text-sm text-green-700 mt-2">
                       6-second scan appeal
@@ -379,7 +397,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                   <div className="bg-yellow-50 rounded-lg p-6">
                     <h4 className="font-semibold text-yellow-900 mb-2">First Impression</h4>
                     <div className="text-3xl font-bold text-yellow-600">
-                      {analysis.recruiterAnalysis?.firstImpressionScore || 0}%
+                      {typeof analysis.recruiterAnalysis?.firstImpressionScore === 'number' ? analysis.recruiterAnalysis.firstImpressionScore.toFixed(1) : analysis.recruiterAnalysis?.firstImpressionScore || 0}%
                     </div>
                     <p className="text-sm text-yellow-700 mt-2">
                       Top section impact
@@ -564,11 +582,36 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
 
         {/* Action Buttons - Moved to Bottom */}
         <div className="mt-12 bg-white rounded-3xl shadow-2xl border border-gray-100 p-8">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Ready to Improve Your CV?</h3>
-            <p className="text-gray-600">Choose your next step to enhance your job application success</p>
+          <div className="text-center mb-12">
+            <h3 className="text-3xl font-bold text-gray-900 mb-2">Next Steps to Success</h3>
+            <p className="text-lg text-gray-600">Your CV score: <span className={`font-bold ${getScoreColor(analysis.overallScore)}`}>{typeof analysis.overallScore === 'number' ? analysis.overallScore.toFixed(1) : analysis.overallScore}%</span></p>
           </div>
-          
+
+          {/* Format Improvements Section */}
+          {analysis.formatScore && analysis.formatScore < 90 && (
+            <div className={`mb-8 p-6 rounded-2xl border-2 ${analysis.formatScore >= 70 ? 'bg-yellow-50 border-yellow-200' : 'bg-orange-50 border-orange-200'}`}>
+              <div className="flex items-start">
+                <div className={`w-10 h-10 ${analysis.formatScore >= 70 ? 'bg-yellow-500' : 'bg-orange-500'} rounded-lg flex items-center justify-center mr-3 flex-shrink-0`}>
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h4 className={`font-bold text-lg ${analysis.formatScore >= 70 ? 'text-yellow-900' : 'text-orange-900'} mb-1`}>Improve Your CV Format</h4>
+                  <p className={`${analysis.formatScore >= 70 ? 'text-yellow-800' : 'text-orange-800'} text-sm mb-3`}>
+                    Your CV format score is {analysis.formatScore?.toFixed(1)}%. Better formatting can significantly improve how recruiters and ATS systems perceive your CV.
+                  </p>
+                  <div className="text-xs font-medium">
+                    {analysis.formatAnalysis?.sectionStructure < 70 && <p className="text-yellow-700 mb-1">✓ Improve section structure and headers</p>}
+                    {analysis.formatAnalysis?.formatting < 70 && <p className="text-yellow-700 mb-1">✓ Fix formatting consistency and spacing</p>}
+                    {analysis.formatAnalysis?.bulletQuality < 70 && <p className="text-yellow-700 mb-1">✓ Strengthen bullet point quality</p>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main Action Buttons */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <button
               onClick={onImprove}
@@ -581,8 +624,9 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </div>
-                <h4 className="text-lg font-bold mb-2">Manual Improvements</h4>
-                <p className="text-sm opacity-90">Apply specific suggestions step by step</p>
+                <h4 className="text-lg font-bold mb-2">Get Full Report</h4>
+                <p className="text-sm opacity-90">Access detailed analysis with all 6+ scores and metrics</p>
+                <div className="mt-3 text-xs bg-white/20 px-2 py-1 rounded inline-block font-medium">View All Recommendations</div>
               </div>
             </button>
 
@@ -598,10 +642,8 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                   </svg>
                 </div>
                 <h4 className="text-lg font-bold mb-2">AI Auto-Rewrite</h4>
-                <p className="text-sm opacity-90">Let AI optimize your entire CV</p>
-                <div className="mt-2 bg-white/20 rounded-full px-3 py-1 text-xs font-medium">
-                  Premium Feature
-                </div>
+                <p className="text-sm opacity-90">Apply AI suggestions and rewrite your entire CV</p>
+                <div className="mt-3 text-xs bg-emerald-700 px-2 py-1 rounded inline-block font-medium">Premium Feature</div>
               </div>
             </button>
 
@@ -616,9 +658,19 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
                 </div>
-                <h4 className="text-lg font-bold mb-2">Upload New CV</h4>
-                <p className="text-sm opacity-90">Analyze a different CV document</p>
+                <h4 className="text-lg font-bold mb-2">Analyze Another CV</h4>
+                <p className="text-sm opacity-90">Upload and analyze a different CV document</p>
+                <div className="mt-3 text-xs bg-white/20 px-2 py-1 rounded inline-block font-medium">Free Feature</div>
               </div>
+            </button>
+          </div>
+
+          {/* Premium CTA */}
+          <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200 text-center">
+            <h4 className="font-bold text-lg text-blue-900 mb-2">Unlock Premium Features</h4>
+            <p className="text-blue-800 text-sm mb-4">Get AI-powered CV rewrites, ATS optimization, and full detailed analysis for all metrics</p>
+            <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors">
+              Upgrade to Premium
             </button>
           </div>
         </div>

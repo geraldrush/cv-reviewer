@@ -68,21 +68,31 @@ ${truncatedCV}
 Return ONLY the rewritten CV text with name on first line and contact info on second line.`;
 
       console.log('🔗 Calling OpenAI API for CV rewrite...');
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 2200,
-        temperature: 0.3
-      });
-
-      console.log('✅ OpenAI response received');
-      const output = response.choices[0].message.content.trim();
+      console.log('🔑 API Key check: ', this.openai ? 'initialized' : 'NOT INITIALIZED');
       
-      if (!output.includes("WORK EXPERIENCE") && !output.includes("EXPERIENCE")) {
-        throw new Error("Invalid CV rewrite output - missing required sections");
-      }
+      try {
+        const response = await this.openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 2200,
+          temperature: 0.3
+        });
 
-      return output;
+        console.log('✅ OpenAI response received');
+        const output = response.choices[0].message.content.trim();
+        
+        if (!output.includes("WORK EXPERIENCE") && !output.includes("EXPERIENCE")) {
+          throw new Error("Invalid CV rewrite output - missing required sections");
+        }
+
+        return output;
+      } catch (apiError) {
+        console.error('❌ OpenAI API Error:', apiError.message);
+        console.error('❌ Error code:', apiError.code);
+        console.error('❌ Error status:', apiError.status);
+        console.error('❌ Error details:', apiError);
+        throw new Error(`OpenAI API failed: ${apiError.message || apiError.code || 'Unknown error'}`);
+      }
     } catch (error) {
       console.error('❌ CV rewrite error:', error.message || error);
       console.error('Error details:', error);

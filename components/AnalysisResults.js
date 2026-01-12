@@ -145,6 +145,8 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
               </div>
             </div>
 
+
+
             {/* Premium Upgrade CTA */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white mb-8 shadow-xl">
               <div className="flex items-start gap-6">
@@ -152,7 +154,7 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                 <div className="flex-1">
                   <h3 className="text-2xl font-bold mb-2">Want More Insights?</h3>
                   <p className="text-blue-100 mb-6 leading-relaxed">
-                    Upgrade to Premium to unlock detailed analysis including ATS Compatibility Score, Recruiter Appeal, Keyword Matching, CV Format Scoring, and AI-powered CV rewriting.
+                    Unlock Premium to see detailed analysis including ATS Compatibility Score, Recruiter Appeal, Keyword Matching, CV Format Scoring, and AI-powered CV rewriting.
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 text-sm">
                     <div className="bg-white/20 rounded-lg p-3">
@@ -173,7 +175,10 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
                     </div>
                   </div>
                   <button
-                    onClick={onUpgrade}
+                    onClick={() => {
+                      // Prompt user to sign in and pay for premium
+                      alert('Sign in with Google and pay R130 to unlock premium analysis');
+                    }}
                     className="bg-white text-blue-600 font-bold py-3 px-8 rounded-xl hover:bg-gray-100 transition-all duration-300 shadow-lg"
                   >
                     Unlock Premium Analysis →
@@ -185,20 +190,13 @@ export default function AnalysisResults({ analysis, jobData, onReset, onRewrite,
             {/* Actions */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
               <h3 className="text-xl font-bold text-gray-900 mb-6">Next Steps</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-1 gap-4">
                 <button
                   onClick={onReset}
                   className="p-6 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all hover:scale-105"
                 >
                   <div className="text-2xl mb-2">📤</div>
                   Analyze Another CV
-                </button>
-                <button
-                  onClick={onUpgrade}
-                  className="p-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all hover:scale-105"
-                >
-                  <div className="text-2xl mb-2">⭐</div>
-                  Upgrade to Premium
                 </button>
               </div>
             </div>

@@ -32,6 +32,7 @@ export default function Home() {
     setStep(1); // Go to job input after tier selection
   };
 
+
   const handleUpgradeToPremium = () => {
     setUserTier('premium');
     // In real app, this would show payment modal

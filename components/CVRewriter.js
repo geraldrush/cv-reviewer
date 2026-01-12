@@ -168,7 +168,12 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
                   <div>✓ Enhance first impression</div>
                 </div>
               </div>
-            </div>className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${
+            </div>
+
+            <button
+              onClick={handleRewrite}
+              disabled={rewriting}
+              className={`px-8 py-3 rounded-lg font-medium text-white transition-colors ${
                 rewriting
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500'

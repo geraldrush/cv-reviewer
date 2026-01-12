@@ -200,15 +200,23 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
             <div className="bg-white border border-gray-300 rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-gray-900">Your Rewritten CV</h3>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(rewrittenCV);
-                    alert('CV copied to clipboard!');
-                  }}
-                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                >
-                  Copy to Clipboard
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(rewrittenCV);
+                      alert('CV copied to clipboard!');
+                    }}
+                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  >
+                    Copy to Clipboard
+                  </button>
+                  <button
+                    onClick={() => handleDownload(rewrittenCV, 'pdf')}
+                    className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-2"
+                  >
+                    📥 Download PDF
+                  </button>
+                </div>
               </div>
               <div className="bg-gray-50 p-4 rounded border border-gray-200 max-h-96 overflow-y-auto">
                 <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">{rewrittenCV}</pre>

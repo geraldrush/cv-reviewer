@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -8,6 +8,7 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        const supabase = getSupabase();
         if (!supabase) {
           console.log('Supabase not configured');
           router.push('/');

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 
 const AuthContext = createContext();
 
@@ -12,6 +12,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        const supabase = getSupabase();
         if (!supabase) {
           setLoading(false);
           return;
@@ -42,8 +43,9 @@ export function AuthProvider({ children }) {
 
   const signInWithGoogle = async () => {
     try {
+      const supabase = getSupabase();
       if (!supabase) {
-        throw new Error('Supabase not configured. Please set environment variables.');
+        throw new Error('Supabase not configured. Please check your environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY');
       }
       
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -62,6 +64,7 @@ export function AuthProvider({ children }) {
   };
 
   const signOut = async () => {
+    const supabase = getSupabase();
     if (supabase) {
       await supabase.auth.signOut();
     }

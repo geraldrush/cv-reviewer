@@ -188,11 +188,30 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
               <p className="text-green-800 mb-4">
                 Your CV has been successfully rewritten and optimized for the target role.
               </p>
-              <div className="text-sm text-green-700">
+              <div className="text-sm text-green-700 mb-6">
                 ✓ Keywords optimized for ATS systems<br/>
                 ✓ Bullet points strengthened with metrics<br/>
                 ✓ Action verbs enhanced<br/>
                 ✓ Business impact highlighted
+              </div>
+            </div>
+
+            {/* Rewritten CV Display */}
+            <div className="bg-white border border-gray-300 rounded-lg p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold text-gray-900">Your Rewritten CV</h3>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(rewrittenCV);
+                    alert('CV copied to clipboard!');
+                  }}
+                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Copy to Clipboard
+                </button>
+              </div>
+              <div className="bg-gray-50 p-4 rounded border border-gray-200 max-h-96 overflow-y-auto">
+                <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">{rewrittenCV}</pre>
               </div>
             </div>
 

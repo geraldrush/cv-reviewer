@@ -31,8 +31,18 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // If user is already logged in, skip tier selection
+  useEffect(() => {
+    if (!authLoading && user && userTier === null) {
+      console.log('👤 User already authenticated:', user.email);
+      setUserTier('premium');
+      setStep(1);
+    }
+  }, [user, authLoading, userTier]);
+
   // Handle OAuth callback
   useEffect(() => {
+    console.log('🚀 OAuth effect mounted, checking for token...');
     const handleAuthCallback = async () => {
       // Check if we're returning from OAuth (has hash with access_token)
       if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {

@@ -59,10 +59,6 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
       const result = await response.json();
 
       if (!result.success) {
-        if (result.requiresAuth) {
-          setShowAuthModal(true);
-          return;
-        }
         throw new Error(result.message || 'Rewrite failed');
       }
 

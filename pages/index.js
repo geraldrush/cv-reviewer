@@ -302,16 +302,16 @@ export default function Home() {
         <title>CV Reviewer - Best-in-Class CV Analysis</title>
         <meta name="description" content="Get your CV reviewed by AI that thinks like both ATS systems and human recruiters" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link Top Navigation */}
-          <div className="flex justify-end mb-6">
-            <UserMenu user={user} userTier={userTier || authUserTier} onSignOut={handleSignOut} />
-          </div>
-
-          {/* rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Top Navigation */}
+          <div className="flex justify-end mb-6">
+            <UserMenu user={user} userTier={userTier || authUserTier} onSignOut={handleSignOut} />
+          </div>
+
           {/* Header */}
           <header className="text-center mb-8 sm:mb-12 relative">
             <div className="relative bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-lg sm:shadow-2xl border border-gray-100">

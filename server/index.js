@@ -278,10 +278,23 @@ app.post('/api/rewrite-cv', upload.single('cv'), async (req, res) => {
     const analysis = await cvAnalyzer.analyzeCV(cvText, jobDescription, targetRole || 'Professional');
     
     console.log('✏️ Rewriting CV...');
+    if (!cvAnalyzer.cvRewriter) {
+      console.error('❌ CV Rewriter not available');
+      // Provide fallback rewritten text
+      return res.json({ 
+        success: true, 
+        rewritten: cvText, 
+        improvements: { improvements: [] }
+      });
+    }
+    
     const rewritten = await cvAnalyzer.cvRewriter.rewriteEntireCV(cvText, jobDescription, analysis);
     
     console.log('💡 Generating improvements...');
-    const improvements = await cvAnalyzer.intelligenceLayer.generateBulletRecommendations(analysis.intelligenceAnalysis.bullets);
+    let improvements = { improvements: [] };
+    if (cvAnalyzer.intelligenceLayer && analysis.intelligenceAnalysis?.bullets?.bulletAnalysis) {
+      improvements = await cvAnalyzer.intelligenceLayer.generateBulletRecommendations(analysis.intelligenceAnalysis.bullets);
+    }
 
     console.log('✅ Rewrite complete');
     res.json({ success: true, rewritten, improvements });

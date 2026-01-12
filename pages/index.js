@@ -36,38 +36,62 @@ export default function Home() {
     const handleAuthCallback = async () => {
       // Check if we're returning from OAuth (has hash with access_token)
       if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+        console.log('🔐 OAuth callback detected, processing...');
+        
         const supabase = getSupabase();
-        if (supabase) {
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
+        if (!supabase) {
+          console.log('⚠️ Supabase not initialized, retrying...');
+          // Retry after a delay
+          setTimeout(handleAuthCallback, 500);
+          return;
+        }
+        
+        try {
+          // Wait for Supabase to process the session
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error('Session error:', sessionError);
+            return;
+          }
+          
+          if (session?.user) {
+            console.log('✅ OAuth successful:', session.user.email);
             
-            if (session?.user) {
-              console.log('OAuth successful:', session.user.email);
-              
-              // Create user record in database
-              await supabase
-                .from('users')
-                .upsert({
-                  id: session.user.id,
-                  email: session.user.email,
-                  name: session.user.user_metadata?.full_name,
-                  google_id: session.user.id,
-                  tier: 'premium',
-                  is_paid: false,
-                  created_at: new Date(),
-                }, {
-                  onConflict: 'id'
-                });
+            // Create user record in database
+            const { error: upsertError } = await supabase
+              .from('users')
+              .upsert({
+                id: session.user.id,
+                email: session.user.email,
+                name: session.user.user_metadata?.full_name,
+                google_id: session.user.id,
+                tier: 'premium',
+                is_paid: false,
+                created_at: new Date(),
+              }, {
+                onConflict: 'id'
+              });
 
-              // Set premium tier and move to step 1
-              setUserTier('premium');
-              updateUserTier('premium');
-              setStep(1);
-              
-              // Clean up the URL hash
-              window.history.replaceState({}, document.title, window.location.pathname);
+            if (upsertError) {
+              console.error('Error saving user:', upsertError);
+            } else {
+              console.log('✅ User record created/updated');
             }
-          } catch (err) {
+
+            // Set premium tier and move to step 1
+            setUserTier('premium');
+            updateUserTier('premium');
+            setStep(1);
+            
+            // Clean up the URL hash
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } else {
+            console.log('⚠️ No session found');
+          }
+        } catch (err) {
             console.error('Error handling OAuth callback:', err);
           }
         }

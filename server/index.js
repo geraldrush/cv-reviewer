@@ -260,19 +260,34 @@ app.post('/api/analyze-cv', upload.single('cv'), async (req, res) => {
 
 app.post('/api/rewrite-cv', upload.single('cv'), async (req, res) => {
   try {
+    console.log('🔄 Rewrite CV endpoint called');
+    
     const { jobDescription, targetRole, companyName } = req.body;
     if (!req.file || !jobDescription) return res.status(400).json({ error: 'CV file and job description required' });
 
+    if (!cvAnalyzer) {
+      console.error('❌ CVAnalyzer not initialized');
+      return res.status(503).json({ error: 'CV Analyzer service not available' });
+    }
+
+    console.log('📄 Extracting CV text...');
     const cvText = await extractCvText(req.file);
     if (!cvText || cvText.length < 50) return res.status(400).json({ error: 'CV text extraction failed' });
 
+    console.log('🔍 Analyzing CV...');
     const analysis = await cvAnalyzer.analyzeCV(cvText, jobDescription, targetRole || 'Professional');
+    
+    console.log('✏️ Rewriting CV...');
     const rewritten = await cvAnalyzer.cvRewriter.rewriteEntireCV(cvText, jobDescription, analysis);
+    
+    console.log('💡 Generating improvements...');
     const improvements = await cvAnalyzer.intelligenceLayer.generateBulletRecommendations(analysis.intelligenceAnalysis.bullets);
 
+    console.log('✅ Rewrite complete');
     res.json({ success: true, rewritten, improvements });
   } catch (error) {
-    console.error('Rewrite error:', error);
+    console.error('❌ Rewrite error:', error.message);
+    console.error('Stack:', error.stack);
     res.status(500).json({ error: 'Rewrite failed', message: error.message });
   }
 });

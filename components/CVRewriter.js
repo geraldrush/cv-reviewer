@@ -18,26 +18,9 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAuthStatus();
+    // No need to check auth status since rewrite is open to all users
+    setLoading(false);
   }, []);
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch(`${getApiUrl()}/api/auth/user`, {
-        credentials: 'include'
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-        setUserTier(data.user?.tier || 'free');
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleRewrite = async () => {
     setRewriting(true);

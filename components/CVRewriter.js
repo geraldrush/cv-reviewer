@@ -7,6 +7,82 @@ const getApiUrl = () => {
   return baseUrl.replace(/\/$/, '');
 };
 
+// Identify missing critical fields from CV text
+const identifyMissingFields = (cvText, analysis) => {
+  const missing = [];
+  const cvLower = cvText.toLowerCase();
+
+  // Check for phone number
+  if (!cvText.match(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/) && !cvText.match(/\+\d{1,3}\s?\d{1,14}/)) {
+    missing.push({
+      field: 'phone',
+      label: 'Phone Number',
+      type: 'tel',
+      priority: 'critical',
+      impact: 'Recruiters need contact info'
+    });
+  }
+
+  // Check for email
+  if (!cvText.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)) {
+    missing.push({
+      field: 'email',
+      label: 'Email Address',
+      type: 'email',
+      priority: 'critical',
+      impact: 'Essential for recruiter communication'
+    });
+  }
+
+  // Check for LinkedIn
+  if (!cvLower.includes('linkedin') && !cvLower.includes('linkedin.com')) {
+    missing.push({
+      field: 'linkedin',
+      label: 'LinkedIn Profile URL',
+      type: 'url',
+      priority: 'high',
+      impact: 'Recruiters verify professional history'
+    });
+  }
+
+  // Check for location
+  if (!cvLower.includes('location') && !cvLower.includes('based in') && !cvLower.includes('city') && !cvLower.includes(',')) {
+    missing.push({
+      field: 'location',
+      label: 'Location/City',
+      type: 'text',
+      priority: 'high',
+      impact: 'Remote vs. on-site job matching'
+    });
+  }
+
+  // Check for weak bullets (low quality experience descriptions)
+  const weakBullets = analysis?.intelligenceAnalysis?.bullets?.bulletAnalysis?.filter(b => b.score < 60) || [];
+  if (weakBullets.length > 0) {
+    missing.push({
+      field: 'bulletEnhancements',
+      label: `Enhance ${weakBullets.length} Bullet Points`,
+      type: 'textarea',
+      priority: 'critical',
+      impact: `Weak bullets reduce score by ~${weakBullets.length * 15}%`
+    });
+  }
+
+  // Check for missing keywords
+  const missingKeywords = analysis?.atsAnalysis?.keywordMatch?.mandatory?.missing || [];
+  if (missingKeywords.length > 5) {
+    missing.push({
+      field: 'keywordAdditions',
+      label: `Add Missing Keywords (${missingKeywords.length} found)`,
+      type: 'textarea',
+      priority: 'critical',
+      impact: `Missing keywords reduce ATS score by ~${Math.min(missingKeywords.length * 5, 40)}%`
+    });
+  }
+
+  return missing;
+};
+
 export default function CVRewriter({ analysis, jobData, originalCV, structuredCV, onBack }) {
   const [rewriting, setRewriting] = useState(false);
   const [rewrittenCV, setRewrittenCV] = useState(null);
@@ -16,11 +92,15 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [missingFields, setMissingFields] = useState([]);
+  const [fieldValues, setFieldValues] = useState({});
 
   useEffect(() => {
-    // No need to check auth status since rewrite is open to all users
+    // Identify missing fields from analysis
+    const missing = identifyMissingFields(originalCV, analysis);
+    setMissingFields(missing);
     setLoading(false);
-  }, []);
+  }, [originalCV, analysis]);
 
   const handleRewrite = async () => {
     setRewriting(true);
@@ -222,6 +302,69 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
                 <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">{rewrittenCV}</pre>
               </div>
             </div>
+
+            {/* Missing Fields Enhancement Section */}
+            {missingFields.length > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+                <h3 className="font-semibold text-orange-900 mb-4">📋 Fill Missing Information to Boost Your Score</h3>
+                <p className="text-sm text-orange-700 mb-6">These fields are affecting your CV score. Adding them will improve your chances:</p>
+                
+                <div className="space-y-4">
+                  {missingFields.map((field) => (
+                    <div key={field.field} className="bg-white rounded-lg p-4 border border-orange-100">
+                      <div className="flex justify-between items-start mb-2">
+                        <label className="font-semibold text-gray-900">{field.label}</label>
+                        <span className={`text-xs font-bold px-2 py-1 rounded ${
+                          field.priority === 'critical' 
+                            ? 'bg-red-100 text-red-700' 
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {field.priority.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-3">Impact: {field.impact}</p>
+                      
+                      {field.type === 'textarea' ? (
+                        <textarea
+                          value={fieldValues[field.field] || ''}
+                          onChange={(e) => setFieldValues({...fieldValues, [field.field]: e.target.value})}
+                          placeholder={`Enter ${field.label.toLowerCase()}...`}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          rows="3"
+                        />
+                      ) : (
+                        <input
+                          type={field.type}
+                          value={fieldValues[field.field] || ''}
+                          onChange={(e) => setFieldValues({...fieldValues, [field.field]: e.target.value})}
+                          placeholder={`Enter ${field.label.toLowerCase()}...`}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {
+                    const filledData = Object.entries(fieldValues)
+                      .filter(([, v]) => v)
+                      .map(([k, v]) => `${k}: ${v}`)
+                      .join('\n\n');
+                    
+                    if (filledData) {
+                      navigator.clipboard.writeText(filledData);
+                      alert('Information copied! You can now integrate it into your CV.');
+                    } else {
+                      alert('Please fill in at least one field.');
+                    }
+                  }}
+                  className="mt-4 w-full px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors font-medium"
+                >
+                  ✅ Copy Information to Add to CV
+                </button>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex justify-center space-x-4">

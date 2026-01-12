@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
 
+// Normalize API URL by removing trailing slashes
+const getApiUrl = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  return baseUrl.replace(/\/$/, '');
+};
+
 const AuthModal = ({ isOpen, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -31,7 +37,7 @@ const AuthModal = ({ isOpen, onClose, onSuccess }) => {
     setError(null);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`, {
+      const res = await fetch(`${getApiUrl()}/api/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

@@ -8,6 +8,12 @@ import CVBuilder from '../components/CVBuilder';
 import CVImprovement from '../components/CVImprovement';
 import LoadingSpinner from '../components/LoadingSpinner';
 
+// Normalize API URL by removing trailing slashes
+const getApiUrl = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  return baseUrl.replace(/\/$/, '');
+};
+
 export default function Home() {
   const [step, setStep] = useState(0); // Start at 0 for menu
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -67,7 +73,7 @@ export default function Home() {
       formData.append('targetRole', jobData?.role || 'Professional');
       formData.append('companyName', jobData?.company || 'Target Company');
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analyze-cv`, {
+      const response = await fetch(`${getApiUrl()}/api/analyze-cv`, {
         method: 'POST',
         body: formData,
       });

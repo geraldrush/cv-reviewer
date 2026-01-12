@@ -22,15 +22,42 @@ const app = express();
 
 console.log(
   'Initializing CV Analyzer with OpenAI API key:',
-  process.env.OPENAI_API_KEY ? 'Present' : 'Missing'
+  process.env.OPENAI_API_KEY ? 'Present' : 'Missing (Premium features disabled)'
 );
 
-const cvAnalyzer = new CVAnalyzer(process.env.OPENAI_API_KEY);
-const enhancedIntelligence = new EnhancedCVIntelligence(process.env.OPENAI_API_KEY);
+// Initialize CVAnalyzer - safe even without API key (free tier uses basic analysis)
+let cvAnalyzer;
+try {
+  cvAnalyzer = new CVAnalyzer(process.env.OPENAI_API_KEY || '');
+} catch (error) {
+  console.warn('CVAnalyzer initialization warning:', error.message);
+  // Will still work for basic analysis
+}
+
+let enhancedIntelligence;
+try {
+  enhancedIntelligence = new EnhancedCVIntelligence(process.env.OPENAI_API_KEY || '');
+} catch (error) {
+  console.warn('EnhancedCVIntelligence initialization warning:', error.message);
+}
+
 const pdfGenerator = new PDFGenerator();
 const userTierService = new UserTierService();
-const authService = new AuthService();
-const payFastService = new PayFastService();
+
+// Auth and payment services are optional
+let authService;
+try {
+  authService = new AuthService();
+} catch (error) {
+  console.warn('AuthService not available:', error.message);
+}
+
+let payFastService;
+try {
+  payFastService = new PayFastService();
+} catch (error) {
+  console.warn('PayFastService not available:', error.message);
+}
 
 /* =========================
    MIDDLEWARE
@@ -44,7 +71,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(
   session({
     name: 'cv-reviewer-session',
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -135,6 +162,10 @@ app.get('/api/health', (req, res) => {
 
 app.post('/api/auth/google', async (req, res) => {
   try {
+    if (!authService) {
+      return res.status(503).json({ error: 'Authentication service not available', requiresEnv: 'GOOGLE_CLIENT_SECRET' });
+    }
+    
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: 'Google token required' });
 
@@ -149,6 +180,10 @@ app.post('/api/auth/google', async (req, res) => {
 
 app.get('/api/auth/user', (req, res) => {
   if (!req.session.userId) return res.status(401).json({ error: 'Not authenticated' });
+
+  if (!authService) {
+    return res.status(503).json({ error: 'Authentication service not available' });
+  }
 
   const user = authService.getUser(req.session.userId);
   if (!user) return res.status(404).json({ error: 'User not found' });
@@ -166,6 +201,10 @@ app.post('/api/auth/logout', (req, res) => {
 
 app.post('/api/payment/create', (req, res) => {
   if (!req.session.userId) return res.status(401).json({ error: 'Authentication required' });
+
+  if (!payFastService || !authService) {
+    return res.status(503).json({ error: 'Payment service not available', requiresEnv: 'PAYFAST_MERCHANT_ID' });
+  }
 
   const user = authService.getUser(req.session.userId);
   if (!user) return res.status(404).json({ error: 'User not found' });
@@ -199,10 +238,153 @@ app.post('/api/analyze-cv', upload.single('cv'), async (req, res) => {
     analysis.id = uuidv4();
     analysis.userTier = tier;
 
-    res.json({ success: true, analysis });
+    res.json({ success: true, analysis, extractedCvText: cvText });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Analysis failed', message: error.message });
+  }
+});
+
+/* =========================
+   CV REWRITING
+========================= */
+
+app.post('/api/rewrite-cv', upload.single('cv'), async (req, res) => {
+  try {
+    if (!req.session.userId) return res.status(401).json({ error: 'Authentication required', requiresAuth: true });
+    
+    const { jobDescription, targetRole, companyName } = req.body;
+    if (!req.file || !jobDescription) return res.status(400).json({ error: 'CV file and job description required' });
+
+    const cvText = await extractCvText(req.file);
+    if (!cvText || cvText.length < 50) return res.status(400).json({ error: 'CV text extraction failed' });
+
+    const user = authService.getUser(req.session.userId);
+    const tier = userTierService.getUserTier(user?.tier);
+
+    if (!userTierService.canUseAI(tier)) {
+      return res.status(402).json({ error: 'Premium required', requiresPayment: true });
+    }
+
+    const analysis = await cvAnalyzer.analyzeCV(cvText, jobDescription, targetRole || 'Professional');
+    const rewritten = await cvAnalyzer.cvRewriter.rewriteEntireCV(cvText, jobDescription, analysis);
+    const improvements = await cvAnalyzer.intelligenceLayer.generateBulletRecommendations(analysis.intelligenceAnalysis.bullets);
+
+    res.json({ success: true, rewritten, improvements });
+  } catch (error) {
+    console.error('Rewrite error:', error);
+    res.status(500).json({ error: 'Rewrite failed', message: error.message });
+  }
+});
+
+/* =========================
+   IMPROVEMENTS
+========================= */
+
+app.post('/api/apply-improvements', async (req, res) => {
+  try {
+    const { originalCV, improvements, jobDescription } = req.body;
+    if (!originalCV || !improvements) return res.status(400).json({ error: 'CV text and improvements required' });
+
+    const improvedCV = await cvAnalyzer.cvRewriter.applyUserImprovements(originalCV, improvements, jobDescription);
+
+    res.json({ success: true, improvedCV });
+  } catch (error) {
+    console.error('Improvement error:', error);
+    res.status(500).json({ error: 'Failed to apply improvements', message: error.message });
+  }
+});
+
+/* =========================
+   PDF GENERATION
+========================= */
+
+app.post('/api/download-cv', async (req, res) => {
+  try {
+    const { cvText, format, structured } = req.body;
+    if (!cvText || !format) return res.status(400).json({ error: 'CV text and format required' });
+
+    let buffer;
+    if (format === 'pdf') {
+      const pdfDoc = pdfGenerator.generateATSOptimizedPDF(cvText);
+      buffer = Buffer.from(pdfDoc.output('arraybuffer'));
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="cv.pdf"');
+    } else if (format === 'txt') {
+      buffer = Buffer.from(cvText);
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', 'attachment; filename="cv.txt"');
+    } else {
+      return res.status(400).json({ error: 'Unsupported format' });
+    }
+
+    res.send(buffer);
+  } catch (error) {
+    console.error('Download error:', error);
+    res.status(500).json({ error: 'PDF generation failed', message: error.message });
+  }
+});
+
+/* =========================
+   CV BUILDER
+========================= */
+
+app.get('/api/cv-questions', (req, res) => {
+  try {
+    const questions = [
+      { id: 'fullName', section: 'Personal', label: 'Full Name', type: 'text' },
+      { id: 'email', section: 'Personal', label: 'Email', type: 'email' },
+      { id: 'phone', section: 'Personal', label: 'Phone', type: 'tel' },
+      { id: 'location', section: 'Personal', label: 'Location', type: 'text' },
+      { id: 'linkedIn', section: 'Personal', label: 'LinkedIn Profile', type: 'url' },
+      { id: 'targetRole', section: 'Professional', label: 'Target Role', type: 'text' },
+      { id: 'keySkills', section: 'Professional', label: 'Key Skills (comma-separated)', type: 'textarea' },
+      { id: 'experience', section: 'Professional', label: 'Years of Experience', type: 'number' },
+      { id: 'companies', section: 'Experience', label: 'Previous Companies', type: 'textarea' },
+      { id: 'accomplishments', section: 'Experience', label: 'Key Accomplishments', type: 'textarea' }
+    ];
+    res.json({ success: true, questions });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch questions', message: error.message });
+  }
+});
+
+app.post('/api/build-cv', async (req, res) => {
+  try {
+    const { fullName, email, phone, location, linkedIn, targetRole, keySkills, experience, companies, accomplishments } = req.body;
+    
+    if (!fullName || !email || !targetRole) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const cvText = await cvAnalyzer.cvBuilder.generateCV({
+      fullName,
+      email,
+      phone,
+      location,
+      linkedIn,
+      targetRole,
+      keySkills: keySkills ? keySkills.split(',') : [],
+      experience,
+      companies,
+      accomplishments
+    });
+
+    const structured = {
+      fullName,
+      email,
+      phone,
+      location,
+      linkedIn,
+      targetRole,
+      keySkills: keySkills ? keySkills.split(',') : [],
+      experience
+    };
+
+    res.json({ success: true, cvText, structured });
+  } catch (error) {
+    console.error('CV build error:', error);
+    res.status(500).json({ error: 'CV build failed', message: error.message });
   }
 });
 

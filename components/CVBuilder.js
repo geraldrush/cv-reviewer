@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
 
+// Normalize API URL by removing trailing slashes
+const getApiUrl = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  return baseUrl.replace(/\/$/, '');
+};
+
 export default function CVBuilder({ jobData, onComplete, onBack }) {
   const [questions, setQuestions] = useState([]);
   const [currentSection, setCurrentSection] = useState(0);
@@ -12,7 +18,7 @@ export default function CVBuilder({ jobData, onComplete, onBack }) {
 
   const fetchQuestions = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cv-questions`);
+      const response = await fetch(`${getApiUrl()}/api/cv-questions`);
       const result = await response.json();
       if (result.success) {
         setQuestions(result.questions);
@@ -53,7 +59,7 @@ export default function CVBuilder({ jobData, onComplete, onBack }) {
   const generateCV = async () => {
     setGenerating(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/build-cv`, {
+      const response = await fetch(`${getApiUrl()}/api/build-cv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

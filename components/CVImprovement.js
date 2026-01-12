@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import CVPreview from './CVPreview';
 
+// Normalize API URL by removing trailing slashes
+const getApiUrl = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  return baseUrl.replace(/\/$/, '');
+};
+
 export default function CVImprovement({ analysis, jobData, originalCV, onComplete, onBack }) {
   const [improvements, setImprovements] = useState({});
   const [loading, setLoading] = useState(false);
@@ -10,8 +16,7 @@ export default function CVImprovement({ analysis, jobData, originalCV, onComplet
 
   const handleDownloadCV = async (format) => {
     try {
-      const baseURL = process.env.NEXT_PUBLIC_API_URL || '';
-      const response = await fetch(`${baseURL}/api/download-cv`, {
+      const response = await fetch(`${getApiUrl()}/api/download-cv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText, format })
@@ -43,7 +48,7 @@ export default function CVImprovement({ analysis, jobData, originalCV, onComplet
   const handleApplyImprovements = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/apply-improvements`, {
+      const response = await fetch(`${getApiUrl()}/api/apply-improvements`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,5 +1,11 @@
 import { useState } from 'react';
 
+// Normalize API URL by removing trailing slashes
+const getApiUrl = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  return baseUrl.replace(/\/$/, '');
+};
+
 const PaymentModal = ({ isOpen, onClose, user }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -9,7 +15,7 @@ const PaymentModal = ({ isOpen, onClose, user }) => {
     setError(null);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/create`, {
+      const response = await fetch(`${getApiUrl()}/api/payment/create`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import AuthModal from './AuthModal';
 import PaymentModal from './PaymentModal';
 
+// Normalize API URL by removing trailing slashes
+const getApiUrl = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  return baseUrl.replace(/\/$/, '');
+};
+
 export default function CVRewriter({ analysis, jobData, originalCV, structuredCV, onBack }) {
   const [rewriting, setRewriting] = useState(false);
   const [rewrittenCV, setRewrittenCV] = useState(null);
@@ -17,7 +23,7 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
 
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/user`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/user`, {
         credentials: 'include'
       });
       
@@ -57,7 +63,7 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
       formData.append('targetRole', jobData.role);
       formData.append('companyName', jobData.company);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rewrite-cv`, {
+      const response = await fetch(`${getApiUrl()}/api/rewrite-cv`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -89,7 +95,7 @@ export default function CVRewriter({ analysis, jobData, originalCV, structuredCV
 
   const handleDownload = async (cvText, format, structured = null) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/download-cv`, {
+      const response = await fetch(`${getApiUrl()}/api/download-cv`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

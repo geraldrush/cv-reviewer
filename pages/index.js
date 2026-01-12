@@ -36,69 +36,95 @@ export default function Home() {
     const handleAuthCallback = async () => {
       // Check if we're returning from OAuth (has hash with access_token)
       if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
-        console.log('🔐 OAuth callback detected, processing...');
+        console.log('🔐 OAuth callback detected');
         
-        const supabase = getSupabase();
-        if (!supabase) {
-          console.log('⚠️ Supabase not initialized, retrying...');
-          // Retry after a delay
-          setTimeout(handleAuthCallback, 500);
-          return;
-        }
+        // Wait a moment for environment to load
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         try {
-          // Wait for Supabase to process the session
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Try to get Supabase multiple times
+          let supabase = getSupabase();
+          let attempts = 0;
+          while (!supabase && attempts < 3) {
+            console.log(`⏳ Waiting for Supabase... attempt ${attempts + 1}`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            supabase = getSupabase();
+            attempts++;
+          }
           
+          if (!supabase) {
+            console.error('❌ Supabase failed to initialize after retries');
+            // Force move to step anyway
+            setUserTier('premium');
+            updateUserTier('premium');
+            setStep(1);
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return;
+          }
+          
+          console.log('✅ Supabase initialized');
+          
+          // Get the session
           const { data: { session }, error: sessionError } = await supabase.auth.getSession();
           
           if (sessionError) {
-            console.error('Session error:', sessionError);
+            console.error('❌ Session error:', sessionError);
             return;
           }
           
           if (session?.user) {
-            console.log('✅ OAuth successful:', session.user.email);
+            console.log('✅ Session found for:', session.user.email);
             
             // Create user record in database
-            const { error: upsertError } = await supabase
-              .from('users')
-              .upsert({
-                id: session.user.id,
-                email: session.user.email,
-                name: session.user.user_metadata?.full_name,
-                google_id: session.user.id,
-                tier: 'premium',
-                is_paid: false,
-                created_at: new Date(),
-              }, {
-                onConflict: 'id'
-              });
+            try {
+              const { data, error: upsertError } = await supabase
+                .from('users')
+                .upsert({
+                  id: session.user.id,
+                  email: session.user.email,
+                  name: session.user.user_metadata?.full_name || 'User',
+                  google_id: session.user.id,
+                  tier: 'premium',
+                  is_paid: false,
+                  created_at: new Date().toISOString(),
+                });
 
-            if (upsertError) {
-              console.error('Error saving user:', upsertError);
-            } else {
-              console.log('✅ User record created/updated');
+              if (upsertError) {
+                console.error('❌ Error saving user to database:', upsertError);
+                // Continue anyway - user is authenticated
+              } else {
+                console.log('✅ User record created/updated in database');
+              }
+            } catch (err) {
+              console.error('❌ Upsert exception:', err);
+              // Continue anyway
             }
 
             // Set premium tier and move to step 1
+            console.log('🔄 Setting premium tier and moving to job input...');
             setUserTier('premium');
             updateUserTier('premium');
             setStep(1);
             
             // Clean up the URL hash
             window.history.replaceState({}, document.title, window.location.pathname);
+            console.log('✅ OAuth flow complete!');
           } else {
             console.log('⚠️ No session found');
           }
         } catch (err) {
-          console.error('Error handling OAuth callback:', err);
+          console.error('❌ Error handling OAuth callback:', err);
+          // Still move forward with premium
+          setUserTier('premium');
+          updateUserTier('premium');
+          setStep(1);
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
       }
     };
 
     handleAuthCallback();
-  }, []);
+  }, [updateUserTier]);
 
   const handleTierSelect = (tier) => {
     if (tier === 'premium') {

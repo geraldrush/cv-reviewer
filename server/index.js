@@ -231,12 +231,21 @@ app.post('/api/analyze-cv', upload.single('cv'), async (req, res) => {
       return res.status(400).json({ error: 'CV text extraction failed' });
 
     const tier = userTierService.getUserTier(userTier);
-    const analysis = userTierService.canUseAI(tier)
-      ? await cvAnalyzer.analyzeCV(cvText, jobDescription)
-      : userTierService.getBasicAnalysis(cvText, jobDescription);
+    let analysis;
+
+    if (userTierService.canUseAI(tier)) {
+      // Premium: Full analysis with all metrics
+      analysis = await cvAnalyzer.analyzeCV(cvText, jobDescription);
+      analysis.userTier = 'premium';
+    } else {
+      // Free: Basic analysis first
+      analysis = await cvAnalyzer.analyzeCV(cvText, jobDescription);
+      // Then enhance it with friendly summary for free tier
+      analysis = userTierService.getEnhancedFreeTierAnalysis(analysis);
+      analysis.userTier = 'free';
+    }
 
     analysis.id = uuidv4();
-    analysis.userTier = tier;
 
     res.json({ success: true, analysis, extractedCvText: cvText });
   } catch (error) {

@@ -7,6 +7,7 @@ import CVRewriter from '../components/CVRewriter';
 import CVBuilder from '../components/CVBuilder';
 import CVImprovement from '../components/CVImprovement';
 import LoadingSpinner from '../components/LoadingSpinner';
+import TierSelection from '../components/TierSelection';
 
 // Normalize API URL by removing trailing slashes
 const getApiUrl = () => {
@@ -15,7 +16,8 @@ const getApiUrl = () => {
 };
 
 export default function Home() {
-  const [step, setStep] = useState(0); // Start at 0 for menu
+  const [step, setStep] = useState(0); // 0: Tier Selection, 1: Job Input, 2: CV Upload, 3: Results
+  const [userTier, setUserTier] = useState(null); // 'free' or 'premium'
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [jobData, setJobData] = useState(null);
@@ -24,6 +26,16 @@ export default function Home() {
   const [structuredCV, setStructuredCV] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const handleTierSelect = (tier) => {
+    setUserTier(tier);
+    setStep(1); // Go to job input after tier selection
+  };
+
+  const handleUpgradeToPremium = () => {
+    setUserTier('premium');
+    // In real app, this would show payment modal
+  };
 
 
 
@@ -72,6 +84,7 @@ export default function Home() {
       formData.append('jobDescription', jobData?.description || 'General professional role seeking qualified candidates.');
       formData.append('targetRole', jobData?.role || 'Professional');
       formData.append('companyName', jobData?.company || 'Target Company');
+      formData.append('userTier', userTier || 'free'); // Include tier in request
 
       const response = await fetch(`${getApiUrl()}/api/analyze-cv`, {
         method: 'POST',
@@ -84,7 +97,6 @@ export default function Home() {
         throw new Error(result.message || result.error || 'Analysis failed');
       }
 
-      // Use extracted text from backend instead of reading file directly
       setOriginalCV(result.extractedCvText);
       setAnalysis(result.analysis);
       setStep(3);
@@ -96,7 +108,8 @@ export default function Home() {
   };
 
   const resetAnalysis = () => {
-    setStep(0);
+    setStep(0); // Back to tier selection
+    setUserTier(null);
     setSelectedTemplate(null);
     setJobData(null);
     setAnalysis(null);
@@ -149,7 +162,7 @@ export default function Home() {
                   onClick={() => setStep(0)}
                   className="hover:text-orange-600 transition-colors"
                 >
-                  Home
+                  Tier
                 </button>
                 {step >= 1 && (
                   <>
@@ -246,105 +259,13 @@ export default function Home() {
           {!loading && (
             <>
               {step === 0 && (
-                <div className="max-w-5xl mx-auto px-4 sm:px-6">
-                  <div className="text-center mb-8 sm:mb-12">
-                    <h2 className="text-2xl sm:text-3xl font-bold text-black mb-2">Choose Your Path</h2>
-                    <p className="text-base sm:text-lg text-gray-600">Select how you'd like to get started</p>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 mb-12">
-                    <div 
-                      onClick={() => setStep(1)}
-                      className="group relative bg-white rounded-2xl p-6 sm:p-7 cursor-pointer transition-all hover:shadow-xl shadow-md border border-orange-200 hover:border-orange-400"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                          <svg className="w-7 sm:w-8 h-7 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg sm:text-xl font-bold text-black mb-2">Analyze CV</h3>
-                          <p className="text-sm sm:text-base text-gray-600 mb-3">Upload & get AI feedback</p>
-                          <div className="flex items-center text-orange-600 font-semibold text-sm group-hover:translate-x-1 transition-transform">
-                            <span>Get started</span>
-                            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div 
-                      onClick={() => setStep(6)}
-                      className="group relative bg-white rounded-2xl p-6 sm:p-7 cursor-pointer transition-all hover:shadow-xl shadow-md border border-black/20 hover:border-black"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-black to-gray-800 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                          <svg className="w-7 sm:w-8 h-7 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg sm:text-xl font-bold text-black mb-2">Build CV</h3>
-                          <p className="text-sm sm:text-base text-gray-600 mb-3">Create from scratch</p>
-                          <div className="flex items-center text-black font-semibold text-sm group-hover:translate-x-1 transition-transform">
-                            <span>Create</span>
-                            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Features Section */}
-                  <div className="bg-white/80 backdrop-blur rounded-3xl p-8 shadow-2xl border border-gray-100">
-                    <div className="text-center mb-8">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Powered by Dual-Brain Technology</h3>
-                      <p className="text-gray-600">Advanced AI that understands both systems and humans</p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                      <div className="text-center">
-                        <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                          </svg>
-                        </div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">ATS Brain</h4>
-                        <div className="w-12 h-1 bg-blue-500 mx-auto mb-4 rounded-full"></div>
-                        <p className="text-gray-600">Simulates how ATS systems parse and rank your CV</p>
-                      </div>
-                      
-                      <div className="text-center">
-                        <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                        </div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">Recruiter Brain</h4>
-                        <div className="w-12 h-1 bg-emerald-500 mx-auto mb-4 rounded-full"></div>
-                        <p className="text-gray-600">Mimics human recruiter scanning patterns and decisions</p>
-                      </div>
-                      
-                      <div className="text-center">
-                        <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                        </div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">AI Intelligence</h4>
-                        <div className="w-12 h-1 bg-purple-500 mx-auto mb-4 rounded-full"></div>
-                        <p className="text-gray-600">Advanced analysis with actionable improvement suggestions</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <TierSelection 
+                  onSelectTier={handleTierSelect}
+                  onBack={null}
+                />
               )}
 
-              {step === 1 && (
+              {step === 1 && userTier && (
                 <JobInput onSubmit={handleJobSubmit} onBack={() => setStep(0)} />
               )}
 
@@ -360,9 +281,11 @@ export default function Home() {
                 <AnalysisResults 
                   analysis={analysis}
                   jobData={jobData}
+                  userTier={userTier}
                   onReset={resetAnalysis}
                   onRewrite={() => setStep(4)}
                   onImprove={() => setStep(5)}
+                  onUpgrade={handleUpgradeToPremium}
                 />
               )}
 
@@ -383,7 +306,7 @@ export default function Home() {
                   originalCV={originalCV}
                   onComplete={(improvedCV) => {
                     setOriginalCV(improvedCV);
-                    setStep(3); // Go back to analysis with improved CV
+                    setStep(3);
                   }}
                   onBack={() => setStep(3)}
                 />

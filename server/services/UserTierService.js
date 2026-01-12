@@ -150,6 +150,83 @@ class UserTierService {
       matchPercentage: Math.round((found.length / (found.length + missing.length)) * 100)
     };
   }
+
+  /**
+   * Generate enhanced free tier analysis with reasoning
+   * Provides summary-focused feedback without detailed metrics
+   */
+  getEnhancedFreeTierAnalysis(analysis) {
+    if (!analysis) return null;
+
+    const overallScore = analysis.overallScore || 0;
+    
+    // Generate reasoning based on score
+    let reasoning = '';
+    if (overallScore >= 85) {
+      reasoning = `Your CV score is ${overallScore.toFixed(1)}%. This is an excellent score! Your CV is well-structured, contains relevant keywords, and matches the job requirements well. You're ready to apply with confidence.`;
+    } else if (overallScore >= 70) {
+      reasoning = `Your CV score is ${overallScore.toFixed(1)}%. This is a solid foundation. Your CV covers the basics and has good keyword alignment with the job. Focus on the improvement areas below to increase your chances of getting an interview.`;
+    } else if (overallScore >= 50) {
+      reasoning = `Your CV score is ${overallScore.toFixed(1)}%. Your CV has some relevant content but needs improvements. There's a gap between your CV and the job requirements. Addressing the key areas below could significantly boost your chances.`;
+    } else {
+      reasoning = `Your CV score is ${overallScore.toFixed(1)}%. Your CV needs significant improvements to be competitive for this role. There's a major mismatch in keywords, structure, or format. Start with the recommended improvements below.`;
+    }
+
+    // Identify key strengths (top 2-3)
+    const keyStrengths = [];
+    if (analysis.summary?.keyStrengths?.length > 0) {
+      keyStrengths.push(...analysis.summary.keyStrengths.slice(0, 3));
+    } else {
+      // Generate default strengths
+      if (analysis.summary?.verdict && !analysis.summary.verdict.includes('WRONG')) {
+        keyStrengths.push('CV document is properly formatted');
+      }
+      if (analysis.matchPercentage && analysis.matchPercentage >= 50) {
+        keyStrengths.push(`Good keyword alignment with job (${analysis.matchPercentage.toFixed(1)}%)`);
+      }
+      if (analysis.summary?.keyStrengths?.length === 0) {
+        keyStrengths.push('Document structure is readable');
+      }
+    }
+
+    // Identify major weaknesses (top 3-5)
+    const majorWeaknesses = [];
+    if (analysis.summary?.majorWeaknesses?.length > 0) {
+      majorWeaknesses.push(...analysis.summary.majorWeaknesses.slice(0, 5));
+    } else {
+      // Generate default weaknesses based on score
+      if (overallScore < 60) {
+        majorWeaknesses.push('Low keyword match with job description');
+      }
+      if (analysis.matchPercentage && analysis.matchPercentage < 50) {
+        majorWeaknesses.push(`Missing key job requirements (${(100 - analysis.matchPercentage).toFixed(1)}% gap)`);
+      }
+      if (overallScore < 70) {
+        majorWeaknesses.push('CV could benefit from better formatting and structure');
+      }
+      if (!majorWeaknesses.length) {
+        majorWeaknesses.push('Consider highlighting more accomplishments and metrics');
+      }
+    }
+
+    return {
+      ...analysis,
+      summary: {
+        ...analysis.summary,
+        reasoning,
+        keyStrengths: keyStrengths.slice(0, 3),
+        majorWeaknesses: majorWeaknesses.slice(0, 5),
+        verdict: analysis.summary?.verdict || this.getVerdict(overallScore)
+      }
+    };
+  }
+
+  getVerdict(score) {
+    if (score >= 85) return '✓ Ready to Apply';
+    if (score >= 70) return '→ Make Quick Improvements';
+    if (score >= 50) return '→ Significant Improvements Needed';
+    return '⚠️ Major Overhaul Recommended';
+  }
 }
 
 module.exports = UserTierService;
